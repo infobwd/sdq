@@ -77,22 +77,39 @@ class Assessment {
             }
 
             // Step 4: Save assessment using JSONP - FIXED FORMAT
-          console.log('Step 4: Saving assessment via JSONP...');
-Utils.showLoading(true, CONFIG.LOADING_MESSAGES.SAVING_ASSESSMENT);
+            console.log('Step 4: Saving assessment via JSONP...');
+            Utils.showLoading(true, CONFIG.LOADING_MESSAGES.SAVING_ASSESSMENT);
             
-            // Send data in the correct format for JSONP
-const response = await Utils.makeRequest(CONFIG.ENDPOINTS.SAVE_ASSESSMENT, {
-    studentId: assessmentData.studentId,
-    studentName: assessmentData.studentName,
-    studentClass: assessmentData.studentClass,
-    evaluatorType: assessmentData.evaluatorType,
-    evaluatorName: assessmentData.evaluatorName || '',
-    relation: assessmentData.relation || '',
-    // แปลง array เป็น JSON string สำหรับ JSONP
-    answers: JSON.stringify(assessmentData.answers)
-});
-            
-            console.log('Server response:', response);
+                // Debug: แสดงข้อมูลก่อนส่ง
+                console.log('Data to send:', {
+                    studentId: assessmentData.studentId,
+                    studentName: assessmentData.studentName,
+                    studentClass: assessmentData.studentClass,
+                    evaluatorType: assessmentData.evaluatorType,
+                    evaluatorName: assessmentData.evaluatorName || '',
+                    relation: assessmentData.relation || '',
+                    answersArray: assessmentData.answers,
+                    answersString: JSON.stringify(assessmentData.answers)
+                });
+                
+                // ส่งข้อมูลในรูปแบบที่ Google Apps Script เข้าใจ
+                const response = await Utils.makeRequest(CONFIG.ENDPOINTS.SAVE_ASSESSMENT, {
+                    studentId: assessmentData.studentId,
+                    studentName: assessmentData.studentName,
+                    studentClass: assessmentData.studentClass,
+                    evaluatorType: assessmentData.evaluatorType,
+                    evaluatorName: assessmentData.evaluatorName || '',
+                    relation: assessmentData.relation || '',
+                    answers: JSON.stringify(assessmentData.answers)
+                });
+                
+                console.log('Server response:', response);
+                
+                // เพิ่มการแสดง debug info ถ้า response มี error
+                if (response && !response.success && response.debug) {
+                    console.log('Debug info from server:', response.debug);
+                    console.log('Server received data:', response.debug.receivedData);
+                }
             
             if (response && response.success) {
                 Utils.showSuccess('บันทึกเรียบร้อย', 'การประเมินถูกบันทึกเรียบร้อยแล้ว');
