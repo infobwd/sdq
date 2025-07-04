@@ -93,15 +93,19 @@ class Assessment {
                 });
                 
                 // ส่งข้อมูลในรูปแบบที่ Google Apps Script เข้าใจ
-                const response = await Utils.makeRequest(CONFIG.ENDPOINTS.SAVE_ASSESSMENT, {
-                    studentId: assessmentData.studentId,
-                    studentName: assessmentData.studentName,
-                    studentClass: assessmentData.studentClass,
-                    evaluatorType: assessmentData.evaluatorType,
-                    evaluatorName: assessmentData.evaluatorName || '',
-                    relation: assessmentData.relation || '',
-                    answers: JSON.stringify(assessmentData.answers)
-                });
+const response = await Utils.makeRequest(CONFIG.ENDPOINTS.SAVE_ASSESSMENT, {
+  action: 'saveAssessment',
+  assessmentData: JSON.stringify({
+    studentId: assessmentData.studentId,
+    studentName: assessmentData.studentName,
+    studentClass: assessmentData.studentClass,
+    evaluatorType: assessmentData.evaluatorType,
+    evaluatorName: assessmentData.evaluatorName || '',
+    relation: assessmentData.relation || '',
+    answers: assessmentData.answers
+  })
+});
+
                 
                 console.log('Server response:', response);
                 
