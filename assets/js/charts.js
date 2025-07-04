@@ -496,57 +496,182 @@ class Charts {
     }
 
     /**
-     * Initialize summary chart (bar chart)
-     */
-    static initSummaryChart() {
-        const summaryCtx = document.getElementById('summary-chart');
-        if (!summaryCtx) return;
+ * Initialize summary chart (bar chart) - Complete Version
+ */
+static initSummaryChart() {
+    const summaryCtx = document.getElementById('summary-chart');
+    if (!summaryCtx) return;
 
-        const ctx = summaryCtx.getContext('2d');
+    const ctx = summaryCtx.getContext('2d');
 
-        // Destroy existing chart if exists
-        if (this.summaryChartInstance) {
-            this.summaryChartInstance.destroy();
-        }
+    // Destroy existing chart if exists
+    if (this.summaryChartInstance) {
+        this.summaryChartInstance.destroy();
+    }
 
-        const chartConfig = {
-            type: 'bar',
-            data: {
-                labels: [
-                    'ด้านอารมณ์',
-                    'ด้านความประพฤติ',
-                    'ด้านสมาธิสั้น',
-                    'ด้านเพื่อน',
-                    'ด้านสังคม'
-                ],
-                datasets: [
-                    {
-                        label: 'ปกติ',
-                        data: [0, 0, 0, 0, 0],
-                        backgroundColor: 'rgba(16, 185, 129, 0.8)',
-                        borderColor: 'rgba(16, 185, 129, 1)',
-                        borderWidth: 1
+    const chartConfig = {
+        type: 'bar',
+        data: {
+            labels: [
+                'ด้านอารมณ์',
+                'ด้านความประพฤติ',
+                'ด้านสมาธิสั้น',
+                'ด้านเพื่อน',
+                'ด้านสังคม'
+            ],
+            datasets: [
+                {
+                    label: 'ปกติ',
+                    data: [0, 0, 0, 0, 0],
+                    backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                    borderColor: 'rgba(16, 185, 129, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    borderSkipped: false
+                },
+                {
+                    label: 'เสี่ยง',
+                    data: [0, 0, 0, 0, 0],
+                    backgroundColor: 'rgba(245, 158, 11, 0.8)',
+                    borderColor: 'rgba(245, 158, 11, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    borderSkipped: false
+                },
+                {
+                    label: 'มีปัญหา',
+                    data: [0, 0, 0, 0, 0],
+                    backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                    borderColor: 'rgba(239, 68, 68, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    borderSkipped: false
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'x',
+            scales: {
+                x: {
+                    stacked: false,
+                    ticks: {
+                        font: {
+                            size: 10,
+                            family: 'Sarabun',
+                            weight: '500'
+                        },
+                        color: '#6b7280',
+                        maxRotation: 45,
+                        minRotation: 0
                     },
-                    {
-                        label: 'เสี่ยง',
-                        data: [0, 0, 0, 0, 0],
-                        backgroundColor: 'rgba(245, 158, 11, 0.8)',
-                        borderColor: 'rgba(245, 158, 11, 1)',
-                        borderWidth: 1
-                    },
-                    {
-                        label: 'มีปัญหา',
-                        data: [0, 0, 0, 0, 0],
-                        backgroundColor: 'rgba(239, 68, 68, 0.8)',
-                        borderColor: 'rgba(239, 68, 68, 1)',
-                        borderWidth: 1
+                    grid: {
+                        display: false
                     }
-                ]
+                },
+                y: {
+                    stacked: false,
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        font: {
+                            size: 10,
+                            family: 'Sarabun'
+                        },
+                        color: '#6b7280',
+                        callback: function(value) {
+                            return value + '%';
+                        },
+                        stepSize: 20
+                    },
+                    title: {
+                        display: true,
+                        text: 'ร้อยละ (%)',
+                        font: {
+                            size: 12,
+                            family: 'Sarabun',
+                            weight: '600'
+                        },
+                        color: '#374151'
+                    },
+                    grid: {
+                        color: '#f3f4f6',
+                        lineWidth: 1
+                    }
+                }
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: {
-                        ticks: {
-                            font: {
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom',
+                    labels: {
+                        font: {
+                            size: 12,
+                            family: 'Sarabun',
+                            weight: '500'
+                        },
+                        color: '#374151',
+                        padding: 20,
+                        usePointStyle: true,
+                        pointStyle: 'rect'
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleFont: {
+                        family: 'Sarabun',
+                        size: 14,
+                        weight: '600'
+                    },
+                    bodyFont: {
+                        family: 'Sarabun',
+                        size: 12
+                    },
+                    cornerRadius: 8,
+                    displayColors: true,
+                    callbacks: {
+                        title: function(context) {
+                            return context[0].label;
+                        },
+                        label: function(context) {
+                            const label = context.dataset.label || '';
+                            const value = context.parsed.y;
+                            return `${label}: ${value.toFixed(1)}%`;
+                        },
+                        afterBody: function(context) {
+                            const dataIndex = context[0].dataIndex;
+                            let total = 0;
+                            context[0].chart.data.datasets.forEach(dataset => {
+                                total += dataset.data[dataIndex];
+                            });
+                            return [`รวม: ${total.toFixed(1)}%`];
+                        }
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
+            elements: {
+                bar: {
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    borderSkipped: false
+                }
+            },
+            animation: {
+                duration: 1000,
+                easing: 'easeInOutQuart'
+            }
+        }
+    };
+
+    this.summaryChartInstance = new Chart(ctx, chartConfig);
+    
+    // Add click handler
+    this.summaryChartInstance.options.onClick = (event, activeElements) => {
+        this.handleChartClick(event, activeElements, this.summaryChartInstance);
+    };
+}
