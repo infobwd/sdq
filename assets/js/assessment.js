@@ -77,19 +77,20 @@ class Assessment {
             }
 
             // Step 4: Save assessment using JSONP - FIXED FORMAT
-            console.log('Step 4: Saving assessment via JSONP...');
-            Utils.showLoading(true, CONFIG.LOADING_MESSAGES.SAVING_ASSESSMENT);
+          console.log('Step 4: Saving assessment via JSONP...');
+Utils.showLoading(true, CONFIG.LOADING_MESSAGES.SAVING_ASSESSMENT);
             
             // Send data in the correct format for JSONP
-            const response = await Utils.makeRequest(CONFIG.ENDPOINTS.SAVE_ASSESSMENT, {
-                studentId: assessmentData.studentId,
-                studentName: assessmentData.studentName,
-                studentClass: assessmentData.studentClass,
-                evaluatorType: assessmentData.evaluatorType,
-                evaluatorName: assessmentData.evaluatorName || '',
-                relation: assessmentData.relation || '',
-                answers: JSON.stringify(assessmentData.answers) // Convert array to string for JSONP
-            });
+const response = await Utils.makeRequest(CONFIG.ENDPOINTS.SAVE_ASSESSMENT, {
+    studentId: assessmentData.studentId,
+    studentName: assessmentData.studentName,
+    studentClass: assessmentData.studentClass,
+    evaluatorType: assessmentData.evaluatorType,
+    evaluatorName: assessmentData.evaluatorName || '',
+    relation: assessmentData.relation || '',
+    // แปลง array เป็น JSON string สำหรับ JSONP
+    answers: JSON.stringify(assessmentData.answers)
+});
             
             console.log('Server response:', response);
             
