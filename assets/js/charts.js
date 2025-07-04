@@ -430,69 +430,7 @@ class Charts {
                 value: chart.data.datasets[datasetIndex].data[index]
             });
         }
-    }
-}
-                                size: 10,
-                                family: 'Sarabun'
-                            },
-                            color: '#6b7280'
-                        },
-                        pointLabels: {
-                            font: {
-                                size: 11,
-                                family: 'Sarabun',
-                                weight: '500'
-                            },
-                            color: '#374151'
-                        },
-                        grid: {
-                            color: '#e5e7eb'
-                        },
-                        angleLines: {
-                            color: '#e5e7eb'
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'bottom',
-                        labels: {
-                            font: {
-                                size: 12,
-                                family: 'Sarabun'
-                            },
-                            color: '#374151',
-                            padding: 20,
-                            usePointStyle: true
-                        }
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                        titleFont: {
-                            family: 'Sarabun',
-                            size: 14
-                        },
-                        bodyFont: {
-                            family: 'Sarabun',
-                            size: 12
-                        },
-                        callbacks: {
-                            label: function(context) {
-                                return `คะแนน: ${context.parsed.r}/10`;
-                            }
-                        }
-                    }
-                },
-                elements: {
-                    line: {
-                        tension: 0.2
-                    }
-                }
-            }
-        };
-
-        this.resultChartInstance = new Chart(ctx, chartConfig);
+ 
     }
 
     /**
@@ -668,7 +606,8 @@ static initSummaryChart() {
         }
     };
 
-this.resultChartInstance = new Chart(ctx, chartConfig);
+this.summaryChartInstance = new Chart(ctx, chartConfig);
+
     
     // Add click handler
     this.summaryChartInstance.options.onClick = (event, activeElements) => {
