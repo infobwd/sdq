@@ -668,7 +668,7 @@ static initSummaryChart() {
         }
     };
 
-    this.summaryChartInstance = new Chart(ctx, chartConfig);
+this.resultChartInstance = new Chart(ctx, chartConfig);
     
     // Add click handler
     this.summaryChartInstance.options.onClick = (event, activeElements) => {
