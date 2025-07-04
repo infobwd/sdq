@@ -1,5 +1,5 @@
 /**
- * Assessment Management for SDQ System
+ * Assessment Management for SDQ System - Fixed Version
  */
 
 class Assessment {
@@ -58,13 +58,16 @@ class Assessment {
                 return;
             }
 
-            // Prepare assessment data
+            // Prepare assessment data - THIS IS THE KEY FIX
             const assessmentData = this.prepareAssessmentData(formType, validation);
             
-            // Save assessment
+            // Save assessment using JSONP
             Utils.showLoading(true, CONFIG.LOADING_MESSAGES.SAVING_ASSESSMENT);
             
-            const response = await Utils.makeRequest(CONFIG.ENDPOINTS.SAVE_ASSESSMENT, assessmentData);
+            // Pass assessmentData as a parameter, not nested
+            const response = await Utils.makeRequest(CONFIG.ENDPOINTS.SAVE_ASSESSMENT, {
+                assessmentData: assessmentData
+            });
             
             if (response && response.success) {
                 Utils.showSuccess('บันทึกเรียบร้อย', 'การประเมินถูกบันทึกเรียบร้อยแล้ว');
@@ -217,7 +220,7 @@ class Assessment {
     }
 
     /**
-     * Prepare assessment data for saving
+     * Prepare assessment data for saving - FIXED VERSION
      * @param {string} formType - Form type
      * @param {Object} validation - Validation result
      * @returns {Object} Assessment data
@@ -287,7 +290,7 @@ class Assessment {
             }
         }
 
-        // Show success message briefly
+        // Show success message briefly for mobile
         if (Utils.isMobile()) {
             const container = document.getElementById(`questions-container-${formType}`);
             if (container) {
@@ -329,7 +332,9 @@ class Assessment {
             }
 
             // Show results page
-            App.showPage('page-results');
+            if (window.App) {
+                App.showPage('page-results');
+            }
             
             // Display results
             if (window.Results) {
@@ -339,7 +344,9 @@ class Assessment {
         } catch (error) {
             console.error('Error showing results:', error);
             // Still navigate to results page even if there's an error
-            App.showPage('page-results');
+            if (window.App) {
+                App.showPage('page-results');
+            }
         }
     }
 
@@ -418,6 +425,315 @@ class Assessment {
         forms.forEach(formType => {
             const form = document.getElementById(`${formType}-assessment-form`);
             if (!form) return;
+
+            // Restore student selection
+            if (savedData.studentId) {
+                const studentSelect = document.getElementById(this.getStudentSelectId(formType));
+                if (studentSelect) {
+                    studentSelect.value = savedData.studentId;
+                    studentSelect.dispatchEvent(new Event('change'));
+                }
+            }
+
+            // Restore evaluator data
+            if (savedData.evaluatorData) {
+                const evaluatorData = savedData.evaluatorData;
+                
+                if (evaluatorData.name) {
+                    const nameField = document.getElementById(`${formType}-name-${formType.charAt(0)}`);
+                    if (nameField) {
+                        nameField.value = evaluatorData.name;
+                    }
+                }
+                
+                if (evaluatorData.relation) {
+                    const relationField = document.getElementById(`${formType}-relation-${formType.charAt(0)}`);
+                    if (relationField) {
+                        relationField.value = evaluatorData.relation;
+                    }
+                }
+            }
+
+            // Restore answers
+            if (savedData.answers && savedData.answers.length === Questions.getTotal()) {
+                savedData.answers.forEach((answer, index) => {
+                    if (Utils.isMobile()) {
+                        // Mobile form
+                        const hiddenInput = form.querySelector(`input[name="q${index}_${formType}"]`);
+                        if (hiddenInput) {
+                            hiddenInput.value = answer;
+                            
+                            // Update visual state
+                            const questionCard = document.getElementById(`question-card-${formType}-${index}`);
+                            if (questionCard) {
+                                const answerBtns = questionCard.querySelectorAll('.answer-btn');
+                                answerBtns.forEach(btn => btn.classList.remove('selected'));
+                                
+                                const selectedBtn = questionCard.querySelector(`[data-value="${answer}"]`);
+                                if (selectedBtn) {
+                                    selectedBtn.classList.add('selected');
+                                }
+                                
+                                questionCard.classList.add('answered');
+                            }
+                        }
+                    } else {
+                        // Desktop form
+                        const radio = form.querySelector(`input[name="q${index}_${formType}"][value="${answer}"]`);
+                        if (radio) {
+                            radio.checked = true;
+                            const label = radio.nextElementSibling;
+                            if (label && label.classList.contains('radio-option')) {
+                                label.classList.add('selected');
+                            }
+                        }
+                    }
+                });
+
+                // Update progress for mobile
+                if (Utils.isMobile()) {
+                    Questions.updateProgress(formType);
+                }
+            }
+
+            Utils.showSuccess('กู้คืนข้อมูลสำเร็จ', 'ข้อมูลการประเมินที่บันทึกไว้ถูกกู้คืนแล้ว');
+            
+        } catch (error) {
+            console.error('Failed to restore auto-saved data:', error);
+            Utils.showError('ไม่สามารถกู้คืนข้อมูลได้', 'เกิดข้อผิดพลาดในการกู้คืนข้อมูล');
+        }
+    }
+
+    /**
+     * Clear auto-saved data
+     * @param {string} formType - Form type
+     */
+    static clearAutoSavedData(formType) {
+        Utils.storage.remove(`sdq_autosave_${formType}`);
+    }
+
+    /**
+     * Get assessment progress
+     * @param {string} formType - Form type
+     * @returns {Object} Progress information
+     */
+    static getAssessmentProgress(formType) {
+        const answers = Questions.getAnswers(formType);
+        const totalQuestions = Questions.getTotal();
+        
+        if (!answers) {
+            // Count answered questions manually
+            const form = document.getElementById(`${formType}-assessment-form`);
+            if (!form) return { answered: 0, total: totalQuestions, percentage: 0 };
+            
+            let answeredCount = 0;
+            for (let i = 0; i < totalQuestions; i++) {
+                if (Utils.isMobile()) {
+                    const input = form.querySelector(`input[name="q${i}_${formType}"]`);
+                    if (input && input.value !== '') answeredCount++;
+                } else {
+                    const radio = form.querySelector(`input[name="q${i}_${formType}"]:checked`);
+                    if (radio) answeredCount++;
+                }
+            }
+            
+            return {
+                answered: answeredCount,
+                total: totalQuestions,
+                percentage: Math.round((answeredCount / totalQuestions) * 100)
+            };
+        }
+        
+        return {
+            answered: answers.length,
+            total: totalQuestions,
+            percentage: Math.round((answers.length / totalQuestions) * 100)
+        };
+    }
+
+    /**
+     * Validate single question answer
+     * @param {string} formType - Form type
+     * @param {number} questionIndex - Question index
+     * @returns {boolean} True if answered
+     */
+    static isQuestionAnswered(formType, questionIndex) {
+        const form = document.getElementById(`${formType}-assessment-form`);
+        if (!form) return false;
+
+        if (Utils.isMobile()) {
+            const input = form.querySelector(`input[name="q${questionIndex}_${formType}"]`);
+            return input && input.value !== '';
+        } else {
+            const radio = form.querySelector(`input[name="q${questionIndex}_${formType}"]:checked`);
+            return !!radio;
+        }
+    }
+
+    /**
+     * Highlight unanswered questions
+     * @param {string} formType - Form type
+     */
+    static highlightUnansweredQuestions(formType) {
+        const totalQuestions = Questions.getTotal();
+        
+        for (let i = 0; i < totalQuestions; i++) {
+            const isAnswered = this.isQuestionAnswered(formType, i);
+            
+            if (Utils.isMobile()) {
+                const questionCard = document.getElementById(`question-card-${formType}-${i}`);
+                if (questionCard) {
+                    if (isAnswered) {
+                        questionCard.classList.remove('border-red-300', 'bg-red-50');
+                        questionCard.classList.add('border-green-300', 'bg-green-50');
+                    } else {
+                        questionCard.classList.remove('border-green-300', 'bg-green-50');
+                        questionCard.classList.add('border-red-300', 'bg-red-50');
+                    }
+                }
+            } else {
+                const radioName = `q${i}_${formType}`;
+                const firstRadio = document.getElementById(`${radioName}_0`);
+                if (firstRadio) {
+                    const row = firstRadio.closest('tr');
+                    if (row) {
+                        if (isAnswered) {
+                            row.classList.remove('bg-red-50');
+                            row.classList.add('bg-green-50');
+                        } else {
+                            row.classList.remove('bg-green-50');
+                            row.classList.add('bg-red-50');
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Show assessment summary before submission
+     * @param {string} formType - Form type
+     * @param {Object} validation - Validation data
+     */
+    static async showAssessmentSummary(formType, validation) {
+        const progress = this.getAssessmentProgress(formType);
+        const studentName = validation.studentData.name;
+        const evaluatorInfo = this.getEvaluatorDisplayText(validation.evaluatorData);
+        
+        const summaryHtml = `
+            <div class="text-left">
+                <h3 class="text-lg font-semibold mb-3">สรุปการประเมิน</h3>
+                <div class="mb-4">
+                    <p><strong>นักเรียน:</strong> ${studentName}</p>
+                    <p><strong>ผู้ประเมิน:</strong> ${evaluatorInfo}</p>
+                    <p><strong>ความครบถ้วน:</strong> ${progress.answered}/${progress.total} คำถาม (${progress.percentage}%)</p>
+                </div>
+                <div class="bg-blue-50 p-3 rounded">
+                    <p class="text-sm text-blue-800">
+                        <i class="fas fa-info-circle"></i>
+                        คุณได้ตอบคำถามครบถ้วนแล้ว พร้อมบันทึกการประเมินหรือไม่?
+                    </p>
+                </div>
+            </div>
+        `;
+
+        return Swal.fire({
+            title: 'ยืนยันการบันทึก',
+            html: summaryHtml,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'บันทึกการประเมิน',
+            cancelButtonText: 'ตรวจสอบอีกครั้ง',
+            customClass: {
+                htmlContainer: 'text-left'
+            }
+        });
+    }
+
+    /**
+     * Get evaluator display text
+     * @param {Object} evaluatorData - Evaluator data
+     * @returns {string} Display text
+     */
+    static getEvaluatorDisplayText(evaluatorData) {
+        switch (evaluatorData.type) {
+            case 'student':
+                return 'นักเรียนประเมินตนเอง';
+            case 'teacher':
+                return `ครู (${evaluatorData.name || 'ไม่ระบุชื่อ'})`;
+            case 'parent':
+                return `ผู้ปกครอง (${evaluatorData.name || 'ไม่ระบุชื่อ'}, ${evaluatorData.relation || 'ไม่ระบุความสัมพันธ์'})`;
+            default:
+                return 'ไม่ระบุ';
+        }
+    }
+
+    /**
+     * Initialize assessment module
+     */
+    static init() {
+        this.setupEventListeners();
+        
+        // Set up form validation on page load
+        setTimeout(() => {
+            this.setupFormValidation();
+        }, 1000);
+    }
+
+    /**
+     * Setup real-time form validation
+     */
+    static setupFormValidation() {
+        const forms = ['student', 'teacher', 'parent'];
+        
+        forms.forEach(formType => {
+            const form = document.getElementById(`${formType}-assessment-form`);
+            if (!form) return;
+
+            // Add validation on form change
+            form.addEventListener('change', Utils.debounce(() => {
+                this.validateFormRealTime(formType);
+            }, 500));
+        });
+    }
+
+    /**
+     * Real-time form validation
+     * @param {string} formType - Form type
+     */
+    static validateFormRealTime(formType) {
+        const progress = this.getAssessmentProgress(formType);
+        
+        // Update progress display if exists
+        const progressElement = document.getElementById(`progress-text-${formType}`);
+        if (progressElement) {
+            progressElement.textContent = `${progress.answered} / ${progress.total} คำถาม`;
+        }
+        
+        const progressBar = document.getElementById(`progress-${formType}`);
+        if (progressBar) {
+            progressBar.style.width = `${progress.percentage}%`;
+        }
+    }
+
+    /**
+     * Export assessment data for debugging
+     * @param {string} formType - Form type
+     * @returns {Object} Assessment debug data
+     */
+    static exportDebugData(formType) {
+        const validation = this.validateAssessmentForm(formType);
+        const progress = this.getAssessmentProgress(formType);
+        
+        return {
+            formType: formType,
+            timestamp: new Date().toISOString(),
+            validation: validation,
+            progress: progress,
+            autoSaveData: Utils.storage.get(`sdq_autosave_${formType}`)
+        };
+    }
+} return;
 
             // Save form data to localStorage on input change
             const debouncedSave = Utils.debounce(() => {
