@@ -1,5 +1,5 @@
 /**
- * Utility Functions for SDQ System
+ * Utility Functions for SDQ System with JSONP Support
  */
 
 class Utils {
@@ -99,6 +99,118 @@ class Utils {
             confirmButtonColor: CONFIG.SWAL_OPTIONS.confirmButtonColor,
             confirmButtonText: CONFIG.SWAL_OPTIONS.confirmButtonText
         });
+    }
+
+    /**
+     * Make JSONP request to Google Apps Script (solves CORS issues)
+     * @param {string} action - Action name
+     * @param {Object} data - Data to send
+     * @returns {Promise} Response promise
+     */
+    static makeRequest(action, data = {}) {
+        return new Promise((resolve, reject) => {
+            try {
+                // Generate unique callback name
+                const callbackName = 'jsonp_callback_' + Math.random().toString(36).substr(2, 9);
+                
+                // Prepare request data
+                const requestData = {
+                    action: action,
+                    callback: callbackName,
+                    ...data
+                };
+
+                // Create callback function
+                window[callbackName] = function(response) {
+                    // Clean up
+                    delete window[callbackName];
+                    document.head.removeChild(script);
+                    
+                    // Resolve with response
+                    resolve(response);
+                };
+
+                // Build URL with parameters
+                const params = new URLSearchParams();
+                Object.keys(requestData).forEach(key => {
+                    if (typeof requestData[key] === 'object') {
+                        params.append(key, JSON.stringify(requestData[key]));
+                    } else {
+                        params.append(key, requestData[key]);
+                    }
+                });
+
+                const url = `${CONFIG.GAS_WEB_APP_URL}?${params.toString()}`;
+
+                // Create script element for JSONP
+                const script = document.createElement('script');
+                script.src = url;
+                
+                // Handle errors
+                script.onerror = function() {
+                    delete window[callbackName];
+                    document.head.removeChild(script);
+                    reject(new Error('การเชื่อมต่อกับเซิร์ฟเวอร์ล้มเหลว กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต'));
+                };
+
+                // Set timeout
+                const timeout = setTimeout(() => {
+                    if (window[callbackName]) {
+                        delete window[callbackName];
+                        document.head.removeChild(script);
+                        reject(new Error('การร้องขอใช้เวลานานเกินไป กรุณาลองอีกครั้ง'));
+                    }
+                }, 30000); // 30 seconds timeout
+
+                // Clear timeout when callback is called
+                const originalCallback = window[callbackName];
+                window[callbackName] = function(response) {
+                    clearTimeout(timeout);
+                    originalCallback(response);
+                };
+
+                // Add script to head to trigger request
+                document.head.appendChild(script);
+
+            } catch (error) {
+                console.error('JSONP request failed:', error);
+                reject(new Error('เกิดข้อผิดพลาดในการส่งข้อมูล: ' + error.message));
+            }
+        });
+    }
+
+    /**
+     * Fallback function for non-JSONP requests (if needed)
+     * @param {string} action - Action name
+     * @param {Object} data - Data to send
+     * @returns {Promise} Response promise
+     */
+    static async makePostRequest(action, data = {}) {
+        try {
+            const requestData = {
+                action: action,
+                ...data
+            };
+
+            const response = await fetch(CONFIG.GAS_WEB_APP_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestData),
+                mode: 'cors'
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            return result;
+        } catch (error) {
+            console.error('POST request failed:', error);
+            throw error;
+        }
     }
 
     /**
@@ -243,39 +355,6 @@ class Utils {
             clearTimeout(timeout);
             timeout = setTimeout(later, wait);
         };
-    }
-
-    /**
-     * Make HTTP request to Google Apps Script
-     * @param {string} action - Action name
-     * @param {Object} data - Data to send
-     * @returns {Promise} Response promise
-     */
-    static async makeRequest(action, data = {}) {
-        try {
-            const requestData = {
-                action: action,
-                ...data
-            };
-
-            const response = await fetch(CONFIG.GAS_WEB_APP_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(requestData)
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const result = await response.json();
-            return result;
-        } catch (error) {
-            console.error('Request failed:', error);
-            throw error;
-        }
     }
 
     /**
@@ -424,6 +503,29 @@ class Utils {
     static addEventListenerWithCleanup(element, event, handler) {
         element.addEventListener(event, handler);
         return () => element.removeEventListener(event, handler);
+    }
+
+    /**
+     * Test JSONP connection
+     * @returns {Promise} Test result
+     */
+    static async testConnection() {
+        try {
+            this.showLoading(true, 'กำลังทดสอบการเชื่อมต่อ...');
+            const response = await this.makeRequest('testConnection');
+            this.showLoading(false);
+            
+            if (response && response.success) {
+                this.showSuccess('การเชื่อมต่อสำเร็จ', 'ระบบพร้อมใช้งาน');
+                return true;
+            } else {
+                throw new Error('การทดสอบการเชื่อมต่อล้มเหลว');
+            }
+        } catch (error) {
+            this.showLoading(false);
+            this.showError('การเชื่อมต่อล้มเหลว', 'กรุณาตรวจสอบการตั้งค่าและลองอีกครั้ง');
+            return false;
+        }
     }
 
     /**
