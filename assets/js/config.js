@@ -1,0 +1,135 @@
+// Configuration for SDQ System
+const CONFIG = {
+    // Google Apps Script Web App URL
+    // ใส่ URL ของ Google Apps Script Web App ที่คุณ Deploy แล้ว
+    GAS_WEB_APP_URL: 'https://script.google.com/macros/s/AKfycbx-rfOnx5yh_XT0Kqx4cBkiCtQKZccRfdChhLrUYQIG7HPDfW8i6GwI4mdHBB5E9H87aA/exec',
+    
+    // API Endpoints
+    ENDPOINTS: {
+        GET_STUDENTS: 'getStudents',
+        SAVE_ASSESSMENT: 'saveAssessment',
+        GET_ASSESSMENT_RESULTS: 'getAssessmentResults',
+        GET_SUMMARY_RESULTS: 'getSummaryResults',
+        IMPORT_STUDENTS: 'importStudents',
+        ADD_STUDENT_MANUAL: 'addStudentManual'
+    },
+    
+    // SweetAlert2 Default Options
+    SWAL_OPTIONS: {
+        confirmButtonColor: '#3b82f6',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'ตกลง',
+        cancelButtonText: 'ยกเลิก',
+        showCancelButton: false,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        customClass: {
+            popup: 'font-sarabun'
+        }
+    },
+    
+    // Chart.js Default Options
+    CHART_OPTIONS: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    font: {
+                        family: 'Sarabun',
+                        size: 12
+                    },
+                    padding: 20,
+                    usePointStyle: true
+                }
+            }
+        }
+    },
+    
+    // Loading Messages
+    LOADING_MESSAGES: {
+        LOADING_STUDENTS: 'กำลังโหลดรายชื่อนักเรียน...',
+        SAVING_ASSESSMENT: 'กำลังบันทึกการประเมิน...',
+        LOADING_RESULTS: 'กำลังโหลดผลการประเมิน...',
+        LOADING_SUMMARY: 'กำลังโหลดข้อมูลสรุป...',
+        IMPORTING_STUDENTS: 'กำลังนำเข้าข้อมูลนักเรียน...',
+        ADDING_STUDENT: 'กำลังเพิ่มข้อมูลนักเรียน...',
+        PROCESSING: 'กำลังประมวลผล...'
+    },
+    
+    // Form Validation
+    VALIDATION: {
+        REQUIRED_FIELDS: {
+            student: ['student-name-s'],
+            teacher: ['teacher-name-t', 'teacher-student-name-t'],
+            parent: ['parent-name-p', 'parent-student-name-p', 'parent-relation-p']
+        }
+    },
+    
+    // Mobile Breakpoints
+    BREAKPOINTS: {
+        SM: 640,
+        MD: 768,
+        LG: 1024,
+        XL: 1280
+    },
+    
+    // Assessment Categories
+    CATEGORIES: {
+        emotional: {
+            name: 'ด้านอารมณ์',
+            color: '#f59e0b',
+            questions: [0, 1, 2, 3, 4]
+        },
+        conduct: {
+            name: 'ด้านความประพฤติ',
+            color: '#ef4444',
+            questions: [5, 6, 7, 8, 9]
+        },
+        hyperactivity: {
+            name: 'ด้านพฤติกรรมอยู่ไม่นิ่ง/สมาธิสั้น',
+            color: '#10b981',
+            questions: [10, 11, 12, 13, 14]
+        },
+        peer: {
+            name: 'ด้านความสัมพันธ์กับเพื่อน',
+            color: '#3b82f6',
+            questions: [15, 16, 17, 18, 19]
+        },
+        prosocial: {
+            name: 'ด้านสัมพันธภาพทางสังคม (จุดแข็ง)',
+            color: '#8b5cf6',
+            questions: [20, 21, 22, 23, 24]
+        }
+    },
+    
+    // Score Interpretation Thresholds
+    THRESHOLDS: {
+        emotional: { normal: 4, borderline: 5, abnormal: 6 },
+        conduct: { normal: 2, borderline: 3, abnormal: 4 },
+        hyperactivity: { normal: 5, borderline: 6, abnormal: 7 },
+        peerProblems: { normal: 2, borderline: 3, abnormal: 4 },
+        totalDifficulties: { normal: 11, borderline: 15, abnormal: 16 },
+        prosocial: { normal: 6, borderline: 5, abnormal: 4 }
+    },
+    
+    // Answer Labels
+    ANSWER_LABELS: ['ไม่จริง', 'จริงบางครั้ง', 'จริงแน่นอน'],
+    
+    // Print Settings
+    PRINT: {
+        PAGE_TITLE_PREFIX: 'SDQ Assessment - ',
+        DATE_FORMAT: {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            timeZone: 'Asia/Bangkok'
+        }
+    }
+};
+
+// Set SweetAlert2 default options
+if (typeof Swal !== 'undefined') {
+    Swal.mixin(CONFIG.SWAL_OPTIONS);
+}
