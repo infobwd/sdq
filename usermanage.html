@@ -664,71 +664,178 @@
             const statusClass = user.isActive ? 'status-active' : 'status-inactive';
             const statusText = user.isActive ? 'ใช้งานอยู่' : 'ระงับการใช้งาน';
             
-            return `
-                <div class="user-card p-6">
-                    <div class="flex items-start justify-between mb-4">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-12 h-12 ${roleInfo.bgColor} rounded-full flex items-center justify-center">
-                                <i class="${roleInfo.icon} text-white text-lg"></i>
+            // ⚠️ ป้องกัน undefined/null arrays
+            const assignedClasses = user.assignedClasses || [];
+            const assignedStudents = user.assignedStudents || [];
+    
+                return `
+                    <div class="user-card p-6">
+                        <!-- Header with Avatar and Role -->
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-12 h-12 ${roleInfo.bgColor} rounded-full flex items-center justify-center">
+                                    <i class="${roleInfo.icon} text-white text-lg"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-semibold text-gray-800 text-lg">${highlightSearchTerm(user.fullName || user.username)}</h3>
+                                    <p class="text-gray-600 text-sm">@${highlightSearchTerm(user.username)}</p>
+                                </div>
                             </div>
-                            <div>
-                                <h3 class="font-semibold text-gray-800 text-lg">${highlightSearchTerm(user.fullName || user.username)}</h3>
-                                <p class="text-gray-600 text-sm">@${highlightSearchTerm(user.username)}</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <span class="role-badge role-${roleInfo.class}">
-                                <i class="${roleInfo.icon} mr-1"></i>${roleInfo.label}
-                            </span>
-                        </div>
-                    </div>
-                    
-                    <div class="space-y-2 mb-4">
-                        ${user.email ? `<p class="text-sm text-gray-600"><i class="fas fa-envelope mr-2"></i>${highlightSearchTerm(user.email)}</p>` : ''}
-                        ${user.school ? `<p class="text-sm text-gray-600"><i class="fas fa-school mr-2"></i>${highlightSearchTerm(user.school)}</p>` : ''}
-                        ${user.lastLogin ? `<p class="text-sm text-gray-600"><i class="fas fa-clock mr-2"></i>เข้าสู่ระบบล่าสุด: ${formatDate(user.lastLogin)}</p>` : ''}
-                    </div>
-                    
-                    ${user.role === 'TEACHER' && user.assignedClasses && user.assignedClasses.length > 0 ? `
-                        <div class="mb-4">
-                            <p class="text-sm font-medium text-gray-700 mb-2">ชั้นเรียนที่สอน:</p>
-                            <div class="flex flex-wrap gap-1">
-                                ${user.assignedClasses.map(className => `
-                                    <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">${className}</span>
-                                `).join('')}
+                            <div class="flex items-center space-x-2">
+                                <span class="role-badge role-${roleInfo.class}">
+                                    <i class="${roleInfo.icon} mr-1"></i>${roleInfo.label}
+                                </span>
                             </div>
                         </div>
-                    ` : ''}
-                    
-                    ${user.role === 'PARENT' && user.assignedStudents && user.assignedStudents.length > 0 ? `
-                        <div class="mb-4">
-                            <p class="text-sm font-medium text-gray-700 mb-2">บุตรหลาน:</p>
-                            <div class="text-sm text-gray-600">
-                                ${user.assignedStudents.length} คน
-                            </div>
+                        
+                        <!-- User Details -->
+                        <div class="space-y-2 mb-4">
+                            ${user.email ? `<p class="text-sm text-gray-600"><i class="fas fa-envelope mr-2"></i>${highlightSearchTerm(user.email)}</p>` : ''}
+                            ${user.school ? `<p class="text-sm text-gray-600"><i class="fas fa-school mr-2"></i>${highlightSearchTerm(user.school)}</p>` : ''}
+                            ${user.createdDate ? `<p class="text-sm text-gray-600"><i class="fas fa-calendar-plus mr-2"></i>สร้างเมื่อ: ${formatDate(user.createdDate)}</p>` : ''}
+                            ${user.lastLogin ? `<p class="text-sm text-gray-600"><i class="fas fa-clock mr-2"></i>เข้าสู่ระบบล่าสุด: ${formatDate(user.lastLogin)}</p>` : `<p class="text-sm text-gray-500"><i class="fas fa-clock mr-2"></i>ยังไม่เคยเข้าสู่ระบบ</p>`}
                         </div>
-                    ` : ''}
-                    
-                    <div class="flex items-center justify-between pt-4 border-t border-gray-200">
-                        <span class="px-2 py-1 rounded-full text-xs font-medium ${statusClass}">
-                            <i class="fas fa-circle mr-1"></i>${statusText}
-                        </span>
-                        <div class="flex space-x-2">
-                            <button onclick="editUser('${user.id}')" class="btn-secondary text-xs">
-                                <i class="fas fa-edit mr-1"></i>แก้ไข
-                            </button>
-                            ${user.role !== 'SUPER_ADMIN' ? `
-                                <button onclick="deleteUser('${user.id}', '${user.username}')" class="btn-danger text-xs">
-                                    <i class="fas fa-trash mr-1"></i>ลบ
+                        
+                        <!-- Teacher Assigned Classes -->
+                        ${user.role === 'TEACHER' && assignedClasses.length > 0 ? `
+                            <div class="mb-4">
+                                <p class="text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-chalkboard mr-1"></i>ชั้นเรียนที่สอน:
+                                </p>
+                                <div class="flex flex-wrap gap-1">
+                                    ${assignedClasses.map(className => `
+                                        <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full border border-blue-200">
+                                            ${className}
+                                        </span>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : user.role === 'TEACHER' ? `
+                            <div class="mb-4">
+                                <p class="text-sm text-gray-500">
+                                    <i class="fas fa-exclamation-triangle mr-1 text-yellow-500"></i>
+                                    ยังไม่ได้กำหนดชั้นเรียน
+                                </p>
+                            </div>
+                        ` : ''}
+                        
+                        <!-- Parent Assigned Students -->
+                        ${user.role === 'PARENT' && assignedStudents.length > 0 ? `
+                            <div class="mb-4">
+                                <p class="text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-child mr-1"></i>บุตรหลาน:
+                                </p>
+                                <div class="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm text-purple-700 font-medium">
+                                            ${assignedStudents.length} คน
+                                        </span>
+                                        <button onclick="viewAssignedStudents('${user.id}')" class="text-purple-600 hover:text-purple-800 text-xs">
+                                            <i class="fas fa-eye mr-1"></i>ดูรายชื่อ
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ` : user.role === 'PARENT' ? `
+                            <div class="mb-4">
+                                <p class="text-sm text-gray-500">
+                                    <i class="fas fa-exclamation-triangle mr-1 text-yellow-500"></i>
+                                    ยังไม่ได้เชื่อมโยงกับนักเรียน
+                                </p>
+                            </div>
+                        ` : ''}
+                        
+                        <!-- Admin Special Privileges -->
+                        ${(user.role === 'SUPER_ADMIN' || user.role === 'SCHOOL_ADMIN') ? `
+                            <div class="mb-4">
+                                <div class="bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-lg p-3">
+                                    <p class="text-sm text-red-700">
+                                        <i class="fas fa-shield-alt mr-1"></i>
+                                        ${user.role === 'SUPER_ADMIN' ? 'สิทธิ์ดูแลระบบสูงสุด' : 'สิทธิ์ดูแลระดับโรงเรียน'}
+                                    </p>
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        <!-- Status and Actions -->
+                        <div class="flex items-center justify-between pt-4 border-t border-gray-200">
+                            <div class="flex items-center space-x-2">
+                                <span class="px-2 py-1 rounded-full text-xs font-medium ${statusClass}">
+                                    <i class="fas fa-circle mr-1"></i>${statusText}
+                                </span>
+                                ${!user.isActive ? `
+                                    <span class="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">
+                                        <i class="fas fa-ban mr-1"></i>ระงับ
+                                    </span>
+                                ` : ''}
+                            </div>
+                            
+                            <div class="flex space-x-2">
+                                <!-- View Details Button -->
+                                <button onclick="viewUserDetails('${user.id}')" class="btn-secondary text-xs" title="ดูรายละเอียด">
+                                    <i class="fas fa-eye mr-1"></i>ดู
                                 </button>
-                            ` : ''}
+                                
+                                <!-- Edit Button -->
+                                <button onclick="editUser('${user.id}')" class="btn-secondary text-xs" title="แก้ไขข้อมูล">
+                                    <i class="fas fa-edit mr-1"></i>แก้ไข
+                                </button>
+                                
+                                <!-- Reset Password Button -->
+                                ${user.role !== 'SUPER_ADMIN' ? `
+                                    <button onclick="resetPassword('${user.id}', '${user.username}')" class="btn-secondary text-xs bg-yellow-500 hover:bg-yellow-600" title="รีเซ็ตรหัสผ่าน">
+                                        <i class="fas fa-key mr-1"></i>รีเซ็ต
+                                    </button>
+                                ` : ''}
+                                
+                                <!-- Toggle Active Status -->
+                                ${user.role !== 'SUPER_ADMIN' ? `
+                                    <button onclick="toggleUserStatus('${user.id}', '${user.username}', ${user.isActive})" 
+                                            class="btn-secondary text-xs ${user.isActive ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-500 hover:bg-green-600'}" 
+                                            title="${user.isActive ? 'ระงับการใช้งาน' : 'เปิดใช้งาน'}">
+                                        <i class="fas fa-${user.isActive ? 'pause' : 'play'} mr-1"></i>
+                                        ${user.isActive ? 'ระงับ' : 'เปิด'}
+                                    </button>
+                                ` : ''}
+                                
+                                <!-- Delete Button -->
+                                ${user.role !== 'SUPER_ADMIN' ? `
+                                    <button onclick="deleteUser('${user.id}', '${user.username}')" class="btn-danger text-xs" title="ลบผู้ใช้">
+                                        <i class="fas fa-trash mr-1"></i>ลบ
+                                    </button>
+                                ` : `
+                                    <span class="text-xs text-gray-400 px-2 py-1 italic">
+                                        ไม่สามารถลบได้
+                                    </span>
+                                `}
+                            </div>
                         </div>
+                        
+                        <!-- Quick Stats for Admin -->
+                        ${(user.role === 'SUPER_ADMIN' || user.role === 'SCHOOL_ADMIN') ? `
+                            <div class="mt-4 pt-3 border-t border-gray-100">
+                                <div class="grid grid-cols-3 gap-2 text-center text-xs text-gray-500">
+                                    <div>
+                                        <div class="font-semibold text-gray-700">สร้างแล้ว</div>
+                                        <div>${getTimeSinceCreated(user.createdDate)}</div>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-700">เข้าครั้งสุดท้าย</div>
+                                        <div>${getLastLoginTime(user.lastLogin)}</div>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-700">สถานะ</div>
+                                        <div class="${user.isActive ? 'text-green-600' : 'text-red-600'}">${user.isActive ? 'ปกติ' : 'ระงับ'}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        ` : ''}
                     </div>
-                </div>
-            `;
-        }
+                `;
+            }
 
         function highlightSearchTerm(text) {
+            const searchTerm = document.getElementById('search-input')?.value;
             if (!searchTerm || !text) return text;
             
             const regex = new RegExp(`(${searchTerm})`, 'gi');
@@ -770,8 +877,162 @@
             };
         }
 
+        // Additional Action Functions
+        function viewUserDetails(userId) {
+            const user = allUsers.find(u => u.id === userId);
+            if (!user) {
+                showError('ไม่พบข้อมูลผู้ใช้');
+                return;
+            }
+            
+            const assignedClasses = user.assignedClasses || [];
+            const assignedStudents = user.assignedStudents || [];
+            
+            Swal.fire({
+                title: 'รายละเอียดผู้ใช้',
+                html: `
+                    <div class="text-left space-y-3">
+                        <div><strong>ชื่อผู้ใช้:</strong> ${user.username}</div>
+                        <div><strong>ชื่อ-นามสกุล:</strong> ${user.fullName || '-'}</div>
+                        <div><strong>อีเมล:</strong> ${user.email || '-'}</div>
+                        <div><strong>บทบาท:</strong> ${getRoleInfo(user.role).label}</div>
+                        <div><strong>โรงเรียน:</strong> ${user.school || '-'}</div>
+                        <div><strong>สถานะ:</strong> ${user.isActive ? 'ใช้งานอยู่' : 'ระงับการใช้งาน'}</div>
+                        <div><strong>สร้างเมื่อ:</strong> ${formatDate(user.createdDate)}</div>
+                        <div><strong>เข้าสู่ระบบล่าสุด:</strong> ${formatDate(user.lastLogin) || 'ไม่เคย'}</div>
+                        ${assignedClasses.length > 0 ? `<div><strong>ชั้นที่สอน:</strong> ${assignedClasses.join(', ')}</div>` : ''}
+                        ${assignedStudents.length > 0 ? `<div><strong>นักเรียน:</strong> ${assignedStudents.length} คน</div>` : ''}
+                    </div>
+                `,
+                confirmButtonText: 'ปิด',
+                confirmButtonColor: '#6b7280',
+                width: '500px'
+            });
+        }
+        
+        function viewAssignedStudents(userId) {
+            const user = allUsers.find(u => u.id === userId);
+            if (!user || !user.assignedStudents || user.assignedStudents.length === 0) {
+                showError('ไม่พบข้อมูลนักเรียนที่กำหนด');
+                return;
+            }
+            
+            // ดึงรายชื่อนักเรียนจาก allStudents (ถ้ามี) หรือแสดง ID
+            const studentNames = user.assignedStudents.map(studentId => {
+                // หาชื่อจริงจาก allStudents array (ถ้าโหลดไว้)
+                const student = allStudents?.find(s => s.id === studentId);
+                return student ? `${student.name} (${student.class})` : studentId;
+            });
+            
+            Swal.fire({
+                title: `นักเรียนของ ${user.fullName}`,
+                html: `
+                    <div class="text-left">
+                        <p class="mb-3 text-gray-600">จำนวน: ${user.assignedStudents.length} คน</p>
+                        <ul class="space-y-1">
+                            ${studentNames.map(name => `<li class="text-sm">• ${name}</li>`).join('')}
+                        </ul>
+                    </div>
+                `,
+                confirmButtonText: 'ปิด',
+                confirmButtonColor: '#6b7280',
+                width: '400px'
+            });
+        }
+        
+        function resetPassword(userId, username) {
+            Swal.fire({
+                title: 'รีเซ็ตรหัสผ่าน',
+                text: `ต้องการรีเซ็ตรหัสผ่านของ "${username}" หรือไม่?`,
+                input: 'password',
+                inputLabel: 'รหัสผ่านใหม่',
+                inputPlaceholder: 'กรอกรหัสผ่านใหม่ (อย่างน้อย 6 ตัว)',
+                inputAttributes: {
+                    minlength: 6,
+                    autocomplete: 'new-password'
+                },
+                showCancelButton: true,
+                confirmButtonText: 'รีเซ็ต',
+                cancelButtonText: 'ยกเลิก',
+                confirmButtonColor: '#f59e0b',
+                cancelButtonColor: '#6b7280',
+                inputValidator: (value) => {
+                    if (!value || value.length < 6) {
+                        return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
+                    }
+                }
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        showLoading(true, "กำลังรีเซ็ตรหัสผ่าน...");
+                        
+                        const response = await makeJSONPRequest('resetUserPassword', {
+                            userId: userId,
+                            newPassword: result.value,
+                            resetBy: currentUser.id
+                        });
+                        
+                        showLoading(false);
+                        
+                        if (response && response.success) {
+                            showSuccess(response.message);
+                        } else {
+                            showError(response ? response.message : 'ไม่สามารถรีเซ็ตรหัสผ่านได้');
+                        }
+                    } catch (error) {
+                        showLoading(false);
+                        showError(`เกิดข้อผิดพลาด: ${error.message}`);
+                    }
+                }
+            });
+        }
+        
+        function toggleUserStatus(userId, username, currentStatus) {
+            const action = currentStatus ? 'ระงับ' : 'เปิด';
+            const actionColor = currentStatus ? '#ef4444' : '#10b981';
+            
+            Swal.fire({
+                title: `${action}การใช้งาน`,
+                text: `ต้องการ${action}การใช้งานของ "${username}" หรือไม่?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: action,
+                cancelButtonText: 'ยกเลิก',
+                confirmButtonColor: actionColor,
+                cancelButtonColor: '#6b7280'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        showLoading(true, `กำลัง${action}การใช้งาน...`);
+                        
+                        const userData = {
+                            id: userId,
+                            isActive: !currentStatus
+                        };
+                        
+                        const response = await makeJSONPRequest('updateUser', {
+                            data: JSON.stringify(userData),
+                            updatedBy: currentUser.id
+                        });
+                        
+                        showLoading(false);
+                        
+                        if (response && response.success) {
+                            showSuccess(response.message);
+                            loadUsers(); // Reload users list
+                        } else {
+                            showError(response ? response.message : `ไม่สามารถ${action}การใช้งานได้`);
+                        }
+                    } catch (error) {
+                        showLoading(false);
+                        showError(`เกิดข้อผิดพลาด: ${error.message}`);
+                    }
+                }
+            });
+        }
+
         function formatDate(dateString) {
-            if (!dateString) return 'ไม่เคย';
+            if (!dateString) return 'ไม่ทราบ';
             
             try {
                 const date = new Date(dateString);
@@ -782,6 +1043,46 @@
                     hour: '2-digit',
                     minute: '2-digit'
                 });
+            } catch (error) {
+                return 'ไม่ทราบ';
+            }
+        }
+
+        function getTimeSinceCreated(dateString) {
+                if (!dateString) return 'ไม่ทราบ';
+                
+                try {
+                    const created = new Date(dateString);
+                    const now = new Date();
+                    const diffDays = Math.floor((now - created) / (1000 * 60 * 60 * 24));
+                    
+                    if (diffDays === 0) return 'วันนี้';
+                    if (diffDays === 1) return 'เมื่อวาน';
+                    if (diffDays < 30) return `${diffDays} วันที่แล้ว`;
+                    if (diffDays < 365) return `${Math.floor(diffDays / 30)} เดือนที่แล้ว`;
+                    return `${Math.floor(diffDays / 365)} ปีที่แล้ว`;
+                } catch (error) {
+                    return 'ไม่ทราบ';
+                }
+            }
+
+        function getLastLoginTime(dateString) {
+            if (!dateString) return 'ไม่เคย';
+            
+            try {
+                const lastLogin = new Date(dateString);
+                const now = new Date();
+                const diffMinutes = Math.floor((now - lastLogin) / (1000 * 60));
+                
+                if (diffMinutes < 60) return `${diffMinutes} นาทีที่แล้ว`;
+                
+                const diffHours = Math.floor(diffMinutes / 60);
+                if (diffHours < 24) return `${diffHours} ชั่วโมงที่แล้ว`;
+                
+                const diffDays = Math.floor(diffHours / 24);
+                if (diffDays < 30) return `${diffDays} วันที่แล้ว`;
+                
+                return formatDate(dateString);
             } catch (error) {
                 return 'ไม่ทราบ';
             }
