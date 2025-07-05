@@ -1,0 +1,45 @@
+{
+  "name": "sdq-assessment-system",
+  "version": "2.0.0",
+  "description": "ระบบประเมินพฤติกรรมนักเรียน SDQ - GitHub Version with Mobile Support",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx http-server . -p 8080 -o",
+    "serve": "npx http-server . -p 3000",
+    "build": "echo 'Static site - no build required'",
+    "test": "echo 'No tests specified'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/infobwd/sdq-assessment-system.git"
+  },
+  "keywords": [
+    "sdq",
+    "assessment",
+    "education",
+    "student-behavior",
+    "mobile-first",
+    "responsive",
+    "thai-education"
+  ],
+  "author": "Your School Name",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "engines": {
+    "node": ">=12.0.0"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead",
+    "iOS >= 10",
+    "Android >= 5"
+  ],
+  "homepage": "https://infobwd.github.io/sdq-assessment-system",
+  "bugs": {
+    "url": "https://github.com/infobwd/sdq-assessment-system/issues"
+  }
+}
