@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Dashboard ครู - ระบบประเมิน SDQ</title>
+    
+    <!-- Preload Critical Resources for Performance -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" as="style">
+    <link rel="preload" href="teacher-dashboard.css" as="style">
+    
+    <!-- Critical CSS Inline for Above-the-fold -->
+    <style>
+        /* Critical CSS for immediate loading */
+        body{font-family:'Sarabun',sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;margin:0;padding:0;}
+        .loading-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;display:flex;flex-direction:column;justify-content:center;align-items:center;color:white;}
+        .spinner{border:3px solid rgba(255,255,255,0.3);border-radius:50%;border-top:3px solid #fff;width:2rem;height:2rem;animation:spin 1s linear infinite;margin-bottom:1rem;}
+        @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+        .hidden{display:none!important;}
+    </style>
+    
+    <!-- External CSS -->
+    <link rel="stylesheet" href="teacher-dashboard.css">
+    
+    <!-- Thai Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- External Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js" defer></script>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <div id="loading-text">กำลังประมวลผล...</div>
+    </div>
+
+    <div class="min-h-screen p-0">
+        <!-- Welcome Banner -->
+        <div class="dashboard-container">
+            <div class="welcome-banner">
+                <div class="welcome-content">
+                    <h1>
+                        <i class="fas fa-chalkboard-teacher" style="margin-right: 0.75rem;"></i>
+                        ยินดีต้อนรับ, <span id="teacher-name">คุณครู</span>
+                    </h1>
+                    <p>แดชบอร์ดสำหรับการจัดการและประเมินนักเรียน</p>
+                    <div style="display: flex; align-items: center; font-size: 0.875rem; opacity: 0.9;">
+                        <i class="fas fa-calendar-alt" style="margin-right: 0.5rem;"></i>
+                        <span id="current-date">วันนี้</span>
+                        <span style="margin: 0 1rem;">|</span>
+                        <i class="fas fa-school" style="margin-right: 0.5rem;"></i>
+                        <span id="school-name">โรงเรียน</span>
+                    </div>
+                </div>
+                <div class="class-selector-container" style="margin-top: 1rem;">
+                    <label style="display: block; font-size: 0.875rem; margin-bottom: 0.5rem; opacity: 0.9;">เลือกชั้นเรียน:</label>
+                    <select id="class-selector" class="class-selector">
+                        <option value="">กำลังโหลด...</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="dashboard-container">
+            <h2 style="font-size: 1.25rem; font-weight: 700; color: #374151; margin: 0 0 1rem 0;">📊 สรุปสถิติ</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-number" id="total-students">-</div>
+                    <div class="stat-label">นักเรียนทั้งหมด</div>
+                </div>
+                
+                <div class="stat-card info">
+                    <div class="stat-icon">
+                        <i class="fas fa-clipboard-check"></i>
+                    </div>
+                    <div class="stat-number" id="assessed-students">-</div>
+                    <div class="stat-label">ประเมินแล้ว</div>
+                </div>
+                
+                <div class="stat-card warning">
+                    <div class="stat-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-number" id="risk-students">-</div>
+                    <div class="stat-label">ต้องดูแล</div>
+                </div>
+                
+                <div class="stat-card danger">
+                    <div class="stat-icon">
+                        <i class="fas fa-heart-broken"></i>
+                    </div>
+                    <div class="stat-number" id="problem-students">-</div>
+                    <div class="stat-label">มีปัญหา</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="dashboard-container">
+            <h2 style="font-size: 1.25rem; font-weight: 700; color: #374151; margin: 0 0 1rem 0;">⚡ การดำเนินการด่วน</h2>
+            <div class="quick-actions-grid">
+                <button id="quick-assess-btn" class="quick-action-btn">
+                    <i class="fas fa-plus-circle"></i>
+                    ประเมินนักเรียนใหม่
+                </button>
+                <button id="view-reports-btn" class="quick-action-btn">
+                    <i class="fas fa-chart-bar"></i>
+                    ดูรายงานสรุป
+                </button>
+                <button id="export-data-btn" class="quick-action-btn">
+                    <i class="fas fa-download"></i>
+                    ส่งออกข้อมูล
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content Tabs -->
+        <div class="dashboard-container">
+            <div class="tabs-container">
+                <div class="tab active" data-tab="students">
+                    <i class="fas fa-users" style="margin-right: 0.5rem;"></i>รายชื่อนักเรียน
+                </div>
+                <div class="tab" data-tab="assessment">
+                    <i class="fas fa-clipboard-list" style="margin-right: 0.5rem;"></i>ประเมิน SDQ
+                </div>
+                <div class="tab" data-tab="reports">
+                    <i class="fas fa-chart-line" style="margin-right: 0.5rem;"></i>รายงานและกราฟ
+                </div>
+                <div class="tab" data-tab="priority">
+                    <i class="fas fa-exclamation-circle" style="margin-right: 0.5rem;"></i>นักเรียนที่ต้องดูแล
+                </div>
+            </div>
+
+            <!-- Students Tab -->
+            <div id="students-tab" class="tab-content">
+                <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1rem;">
+                    <h3 style="font-size: 1.125rem; font-weight: 600; color: #374151; margin: 0;">👥 รายชื่อนักเรียน</h3>
+                    <div class="search-container">
+                        <input 
+                            type="text" 
+                            id="student-search" 
+                            placeholder="ค้นหานักเรียน..."
+                            class="search-input"
+                        >
+                        <button id="refresh-students-btn" class="btn-secondary" style="width: 44px; height: 44px;">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="students-grid" class="students-grid">
+                    <!-- Student cards will be populated here -->
+                </div>
+                
+                <div id="students-empty" class="text-center py-12 hidden">
+                    <i class="fas fa-user-graduate" style="font-size: 4rem; color: #d1d5db; margin-bottom: 1rem;"></i>
+                    <h3 style="font-size: 1.25rem; font-weight: 600; color: #6b7280; margin: 0 0 0.5rem 0;">ไม่พบนักเรียน</h3>
+                    <p style="color: #9ca3af; margin: 0;">ยังไม่มีนักเรียนในชั้นเรียนที่เลือก</p>
+                </div>
+            </div>
+
+            <!-- Assessment Tab -->
+            <div id="assessment-tab" class="tab-content hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="font-size: 1.125rem; font-weight: 600; color: #374151; margin: 0;">📝 ประเมิน SDQ นักเรียน</h3>
+                    <button id="clear-assessment-btn" class="btn-secondary">
+                        <i class="fas fa-eraser" style="margin-right: 0.5rem;"></i>ล้างฟอร์ม
+                    </button>
+                </div>
+                
+                <div class="assessment-form">
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.5rem;">เลือกนักเรียน *</label>
+                        <select id="student-select" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; font-size: 0.875rem;">
+                            <option value="">-- เลือกนักเรียนที่ต้องการประเมิน --</option>
+                        </select>
+                    </div>
+                    
+                    <div id="assessment-questions" class="hidden">
+                        <div id="questions-container">
+                            <!-- Questions will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports Tab -->
+            <div id="reports-tab" class="tab-content hidden">
+                <h3 style="font-size: 1.125rem; font-weight: 600; color: #374151; margin: 0 0 1rem 0;">📈 รายงานและกราฟ</h3>
+                
+                <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+                    <div class="chart-container">
+                        <h4>สัดส่วนผลการประเมิน</h4>
+                        <canvas id="assessment-pie-chart"></canvas>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <h4>คะแนนเฉลี่ยแต่ละด้าน</h4>
+                        <canvas id="aspects-bar-chart"></canvas>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <h4>แนวโน้มการประเมินรายเดือน</h4>
+                        <canvas id="trend-line-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Priority Students Tab -->
+            <div id="priority-tab" class="tab-content hidden">
+                <h3 style="font-size: 1.125rem; font-weight: 600; color: #374151; margin: 0 0 1rem 0;">🚨 นักเรียนที่ต้องดูแลเป็นพิเศษ</h3>
+                
+                <div id="priority-students" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <!-- Priority students will be populated here -->
+                </div>
+                
+                <div id="priority-empty" class="text-center py-12 hidden">
+                    <i class="fas fa-thumbs-up" style="font-size: 4rem; color: #86efac; margin-bottom: 1rem;"></i>
+                    <h3 style="font-size: 1.25rem; font-weight: 600; color: #059669; margin: 0 0 0.5rem 0;">ยอดเยี่ยม!</h3>
+                    <p style="color: #10b981; margin: 0;">ไม่มีนักเรียนที่ต้องดูแลเป็นพิเศษในขณะนี้</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assessment Results Modal -->
+    <div id="results-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 style="font-size: 1.5rem; font-weight: 700; color: #374151; margin: 0;">ผลการประเมิน SDQ</h2>
+                <button id="close-results-btn" style="color: #6b7280; background: none; border: none; font-size: 1.5rem; cursor: pointer;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div id="results-content">
+                <!-- Results will be populated here -->
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+                <button id="print-results-btn" class="btn-success">
+                    <i class="fas fa-print" style="margin-right: 0.5rem;"></i>พิมพ์ผล
+                </button>
+                <button id="close-results-modal-btn" class="btn-secondary">ปิด</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // Configuration
+        const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx-rfOnx5yh_XT0Kqx4cBkiCtQKZccRfdChhLrUYQIG7HPDfW8i6GwI4mdHBB5E9H87aA/exec';
+        
+        // Global Variables
+        let currentUser = null;
+        let currentSession = null;
+        let allStudents = [];
+        let assessmentData = [];
+        let currentClass = null;
+        let filteredStudents = [];
+        let assessmentAnswers = [];
+        let currentAssessmentStudent = null;
+        
+        // SDQ Questions
+        const SDQ_QUESTIONS = [
+            "มีความพิจารณาใส่ใจความรู้สึกของผู้อื่น",
+            "กระสับกระส่าย ไม่สามารถอยู่นิ่งๆ ได้นาน",
+            "บ่นบอกว่าปวดหัว ปวดท้อง หรือไม่สบายบ่อยๆ",
+            "เต็มใจแบ่งปันของกับเด็กอื่นๆ (ขนม ของเล่น ดินสอ เป็นต้น)",
+            "มักจะโกรธหรือดุร้ายมาก",
+            "ค่อนข้างจะอยู่คนเดียว มักจะเล่นคนเดียวหรือเข้าหาผู้อื่นน้อย",
+            "โดยทั่วไปจะเชื่อฟัง มักจะทำตามที่ผู้ใหญ่ขอให้ทำ",
+            "มีความกังวลหรือกลุ้มใจหลายเรื่อง",
+            "พร้อมที่จะช่วยเหลือผู้อื่นที่เจ็บ อารมณ์เสีย หรือไม่สบายใจ",
+            "คอยอยู่ไม่นิ่ง มีแต่ไม่หยุดเคลื่อนไหว หรือดิ้นรนอยู่เรื่อยๆ",
+            "มีเพื่อนสนิทอย่างน้อยหนึ่งคน",
+            "มักจะทะเลาะหรือผลักดันเด็กอื่นๆ",
+            "มักจะไม่มีความสุข ท้อแท้ หรือร้องไห้",
+            "โดยทั่วไปเด็กคนอื่นๆ จะชอบเขา",
+            "เสียสมาธิง่าย วอกแวกง่าย",
+            "ประหม่าหรือยึดติดกับผู้ใหญ่เมื่ออยู่ในสถานการณ์ใหม่ๆ",
+            "มีความเมตตากรุณาต่อเด็กที่เล็กกว่า",
+            "มักจะพูดปด หรือใส่ร้ายผู้อื่น",
+            "เด็กคนอื่นๆ มักจะกลั่นแกล้งหรือรังแกเขา",
+            "มักจะอาสาช่วยเหลือผู้อื่น (พ่อแม่ ครู เด็กคนอื่นๆ)",
+            "คิดก่อนทำ",
+            "เอาของของผู้อื่นจากบ้าน โรงเรียน หรือที่อื่นๆ",
+            "เข้ากับผู้ใหญ่ได้ดีกว่าเด็กคนอื่นๆ",
+            "มีความกลัวหลายๆ อย่าง ตกใจง่าย",
+            "ทำกิจกรรมต่างๆ ให้สำเร็จ สามารถจดจ่อความสนใจได้นาน"
+        ];
+        
+        // Load all JavaScript functions from previous artifacts here
+        // (Include all the functions from teacher_dashboard_part3 through part7)
+        
+    </script>
+    
+    <!-- Load non-critical JavaScript after DOM -->
+    <script defer>
+        // Performance optimization: Load heavy functions after page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize app after everything is loaded
+            initializeApp();
+        });
+        
+        function initializeApp() {
+            // Check authentication
+            if (!getCurrentUser()) {
+                redirectToLogin();
+                return;
+            }
+            
+            // Initialize UI and load data
+            setupUI();
+            loadInitialData();
+        }
+    </script>
+</body>
+</html>
