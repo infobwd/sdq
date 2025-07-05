@@ -868,20 +868,25 @@
                 
                 if (response && response.success) {
                     allStudents = response.students || [];
+                    console.log(`Loaded ${allStudents.length} students from server`);
+                    
                     updateClassSelector();
                     filterStudentsByClass();
                     
-                    // โหลดข้อมูลการประเมินหลังจากได้รายชื่อนักเรียน
-                    await loadAssessmentData();
+                    // โหลดข้อมูลการประเมินสำหรับนักเรียนที่กรองแล้ว
+                    await loadIndividualAssessments();
                     
                     updateStatistics();
                     populateStudentSelect();
+                    updateCharts();
+                    updatePriorityStudents();
                 } else {
                     if (response && response.message === 'Session หมดอายุ') {
                         redirectToLogin();
                         return;
                     }
                     allStudents = [];
+                    filteredStudents = [];
                     updateStatistics();
                 }
                 
@@ -893,6 +898,8 @@
                 console.error('Load students error:', error);
             }
         }
+        
+        console.log('🔧 Class Selector fixes applied!');
 
         async function loadAssessmentData() {
             try {
@@ -926,8 +933,23 @@
         // โหลดข้อมูลการประเมินรายบุคคล
         async function loadIndividualAssessments() {
             try {
+                console.log('Loading individual assessments for filtered students...');
+                
+                if (filteredStudents.length === 0) {
+                    console.log('No students to load assessments for');
+                    return;
+                }
+                
+                // ล้างข้อมูลการประเมินเดิม
+                filteredStudents.forEach(student => {
+                    delete student.latestAssessment;
+                });
+                
+                // โหลดการประเมินสำหรับนักเรียนที่กรองแล้ว
                 const assessmentPromises = filteredStudents.map(async (student) => {
                     try {
+                        console.log(`Loading assessment for student: ${student.name} (${student.id})`);
+                        
                         const response = await makeJSONPRequest('getAssessmentResultsForUser', {
                             sessionId: currentSession,
                             studentId: student.id,
@@ -937,14 +959,30 @@
                         if (response && response.success && response.data) {
                             // เก็บข้อมูลการประเมินไว้ใน student object
                             student.latestAssessment = response.data;
+                            console.log(`✅ Assessment loaded for ${student.name}`);
+                        } else {
+                            console.log(`❌ No assessment found for ${student.name}`);
+                            student.latestAssessment = null;
                         }
                     } catch (error) {
                         console.error(`Error loading assessment for student ${student.id}:`, error);
+                        student.latestAssessment = null;
                     }
                 });
                 
+                // รอให้โหลดเสร็จทั้งหมด
                 await Promise.all(assessmentPromises);
-                console.log('Individual assessments loaded');
+                
+                console.log('✅ Individual assessments loaded for all filtered students');
+                
+                // อัปเดต allStudents ด้วยข้อมูลใหม่
+                filteredStudents.forEach(filteredStudent => {
+                    const studentInAll = allStudents.find(s => s.id === filteredStudent.id);
+                    if (studentInAll) {
+                        studentInAll.latestAssessment = filteredStudent.latestAssessment;
+                    }
+                });
+                
             } catch (error) {
                 console.error('Error loading individual assessments:', error);
             }
@@ -975,14 +1013,39 @@
             }
         }
 
+        function debugClassChange() {
+            console.log('=== Debug Class Change ===');
+            console.log('Current Class:', currentClass);
+            console.log('All Students:', allStudents.length);
+            console.log('Filtered Students:', filteredStudents.length);
+            console.log('Students with assessments:', filteredStudents.filter(s => s.latestAssessment).length);
+            
+            filteredStudents.forEach(student => {
+                const assessment = getLatestAssessment(student.id);
+                console.log(`${student.name} (${student.class}): ${assessment ? 'HAS' : 'NO'} assessment`);
+            });
+            console.log('========================');
+        }
+        
+        // 🔧 7. แก้ไขฟังก์ชัน filterStudentsByClass
         function filterStudentsByClass() {
+            console.log(`Filtering students by class: ${currentClass || 'ทุกชั้น'}`);
+            
             if (!currentClass) {
-                filteredStudents = allStudents;
+                filteredStudents = [...allStudents]; // สร้าง copy ใหม่
             } else {
                 filteredStudents = allStudents.filter(student => student.class === currentClass);
             }
             
+            console.log(`Filtered ${filteredStudents.length} students from ${allStudents.length} total`);
+            
+            // อัปเดตการแสดงผลทันที
             displayStudents();
+            
+            // เรียก debug function
+            if (window.location.hash === '#debug') {
+                debugClassChange();
+            }
         }
 
         function displayStudents() {
@@ -1016,6 +1079,8 @@
             const status = assessment ? getAssessmentStatus(assessment) : 'not-assessed';
             const statusInfo = getStatusInfo(status);
             
+            console.log(`Creating card for ${student.name}: assessment=${!!assessment}, status=${status}`);
+            
             return `
                 <div class="student-card ${status}" data-student-id="${student.id}">
                     <div class="p-4">
@@ -1039,10 +1104,24 @@
                                 <p class="text-gray-600">ประเมินล่าสุด: ${formatDate(assessment.timestamp)}</p>
                                 <p class="text-gray-600">คะแนนรวม: ${assessment.scores.totalDifficulties || 0}/40</p>
                                 <p class="text-gray-600">ประเมินโดย: ${assessment.evaluatorName || 'ไม่ระบุ'}</p>
+                                <div class="mt-2">
+                                    <div class="text-xs">
+                                        <span class="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded mr-1">
+                                            อารมณ์: ${assessment.scores.emotional || 0}
+                                        </span>
+                                        <span class="inline-block bg-green-100 text-green-800 px-2 py-1 rounded mr-1">
+                                            ความประพฤติ: ${assessment.scores.conduct || 0}
+                                        </span>
+                                        <span class="inline-block bg-yellow-100 text-yellow-800 px-2 py-1 rounded mr-1">
+                                            สมาธิ: ${assessment.scores.hyperactivity || 0}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         ` : `
                             <div class="mb-3 text-sm text-gray-500">
                                 <p>ยังไม่ได้ประเมิน</p>
+                                <p class="text-xs">กรุณาทำการประเมินเพื่อดูรายละเอียด</p>
                             </div>
                         `}
                         
@@ -1069,25 +1148,34 @@
             let riskStudents = 0;
             let problemStudents = 0;
             
+            console.log(`Calculating statistics for ${totalStudents} students...`);
+            
             filteredStudents.forEach(student => {
                 const assessment = getLatestAssessment(student.id);
                 
-                if (assessment) {
+                if (assessment && assessment.scores) {
                     assessedStudents++;
                     const status = getAssessmentStatus(assessment);
+                    
+                    console.log(`Student: ${student.name}, Status: ${status}, Total Score: ${assessment.scores.totalDifficulties}`);
                     
                     if (status === 'risk') {
                         riskStudents++;
                     } else if (status === 'problem') {
                         problemStudents++;
                     }
+                } else {
+                    console.log(`Student: ${student.name}, Status: not-assessed`);
                 }
             });
             
+            // อัปเดต UI
             document.getElementById('total-students').textContent = totalStudents;
             document.getElementById('assessed-students').textContent = assessedStudents;
             document.getElementById('risk-students').textContent = riskStudents;
             document.getElementById('problem-students').textContent = problemStudents;
+            
+            console.log(`Statistics updated: Total=${totalStudents}, Assessed=${assessedStudents}, Risk=${riskStudents}, Problem=${problemStudents}`);
         }
 
         function populateStudentSelect() {
@@ -1104,6 +1192,13 @@
 
         // Helper Functions
         function getLatestAssessment(studentId) {
+            // หาจาก filteredStudents ก่อน (เพื่อความแม่นยำ)
+            const filteredStudent = filteredStudents.find(s => s.id === studentId);
+            if (filteredStudent && filteredStudent.latestAssessment) {
+                return filteredStudent.latestAssessment;
+            }
+            
+            // หาจาก allStudents เป็นทางเลือกสำรอง
             const student = allStudents.find(s => s.id === studentId);
             return student ? student.latestAssessment : null;
         }
@@ -2346,12 +2441,40 @@
             // Event Listeners
             
             // Class selector
-            document.getElementById('class-selector').addEventListener('change', function(e) {
-                currentClass = e.target.value || null;
-                filterStudentsByClass();
-                updateStatistics();
-                populateStudentSelect();
-                loadAssessmentData();
+            document.getElementById('class-selector').addEventListener('change', async function(e) {
+                const newClass = e.target.value || null;
+                console.log('Class changed to:', newClass);
+                
+                // แสดง loading
+                showLoading(true, "กำลังโหลดข้อมูลชั้นเรียน...");
+                
+                try {
+                    // อัปเดต currentClass
+                    currentClass = newClass;
+                    
+                    // กรองนักเรียนตามชั้นที่เลือก
+                    filterStudentsByClass();
+                    
+                    // ⚠️ สำคัญ! - โหลดข้อมูลการประเมินใหม่สำหรับชั้นที่เลือก
+                    await loadIndividualAssessments();
+                    
+                    // อัปเดต UI ทั้งหมด
+                    updateStatistics();
+                    populateStudentSelect();
+                    updateCharts();
+                    updatePriorityStudents();
+                    
+                    // แสดงนักเรียนใหม่
+                    displayStudents();
+                    
+                    console.log(`Loaded ${filteredStudents.length} students for class: ${currentClass || 'ทุกชั้น'}`);
+                    
+                } catch (error) {
+                    console.error('Error changing class:', error);
+                    showError('เกิดข้อผิดพลาดในการเปลี่ยนชั้นเรียน');
+                }
+                
+                showLoading(false);
             });
             
             // Student search
