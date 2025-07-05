@@ -1,0 +1,781 @@
+/* teacher-dashboard.css */
+/* ==================== BASIC STYLES ==================== */
+
+* {
+    box-sizing: border-box;
+}
+
+body { 
+    font-family: 'Sarabun', sans-serif; 
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+/* ==================== CONTAINER & LAYOUT ==================== */
+
+.dashboard-container {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    margin: 0 auto;
+    width: 100%;
+    max-width: 1280px;
+}
+
+.welcome-banner {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+/* ==================== RESPONSIVE GRID SYSTEM ==================== */
+
+.grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+/* ==================== CARDS & COMPONENTS ==================== */
+
+.stat-card {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, rgba(255,255,255,0.1), transparent);
+    pointer-events: none;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 25px rgba(16, 185, 129, 0.25);
+}
+
+.stat-card.warning {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.stat-card.danger {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.stat-card.info {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.student-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+    transition: all 0.3s ease;
+    border-left: 4px solid #e5e7eb;
+    overflow: hidden;
+}
+
+.student-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.student-card.normal { border-left-color: #10b981; }
+.student-card.risk { border-left-color: #f59e0b; }
+.student-card.problem { border-left-color: #ef4444; }
+
+/* ==================== BUTTONS ==================== */
+
+.quick-action-btn {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 0.875rem 1.5rem;
+    border-radius: 0.75rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+    min-height: 48px; /* Touch-friendly */
+    position: relative;
+    overflow: hidden;
+}
+
+.quick-action-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.quick-action-btn:hover::before {
+    left: 100%;
+}
+
+.quick-action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    color: white;
+    text-decoration: none;
+}
+
+.quick-action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.btn-secondary {
+    background: #6b7280;
+    color: white;
+    padding: 0.625rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    border: none;
+    cursor: pointer;
+    font-size: 0.875rem;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-secondary:hover {
+    background: #4b5563;
+    transform: translateY(-1px);
+}
+
+.btn-success {
+    background: #10b981;
+    color: white;
+    padding: 0.625rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    border: none;
+    cursor: pointer;
+    font-size: 0.875rem;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-success:hover {
+    background: #059669;
+    transform: translateY(-1px);
+}
+
+/* ==================== TABS ==================== */
+
+.tab {
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+    border: 2px solid transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    white-space: nowrap;
+}
+
+.tab.active {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-color: #667eea;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.tab:not(.active) {
+    background: #f8fafc;
+    color: #64748b;
+}
+
+.tab:not(.active):hover {
+    background: #f1f5f9;
+    color: #475569;
+    transform: translateY(-1px);
+}
+
+/* ==================== STATUS BADGES ==================== */
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.status-normal { background: #dcfce7; color: #166534; }
+.status-risk { background: #fef3c7; color: #92400e; }
+.status-problem { background: #fef2f2; color: #dc2626; }
+.status-not-assessed { background: #f3f4f6; color: #6b7280; }
+
+/* ==================== FORMS & INPUTS ==================== */
+
+.class-selector {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    color: white;
+    margin-top: 1rem;
+    min-height: 44px;
+    font-size: 1rem;
+}
+
+.class-selector option {
+    background: #374151;
+    color: white;
+}
+
+input[type="text"], select {
+    min-height: 44px;
+    font-size: 16px; /* Prevent zoom on iOS */
+}
+
+/* ==================== ASSESSMENT FORMS ==================== */
+
+.assessment-form {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+}
+
+.question-item {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    border: 1px solid #e5e7eb;
+    transition: all 0.2s ease;
+}
+
+.question-item:hover {
+    border-color: #d1d5db;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.radio-group {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.radio-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: white;
+    flex: 1;
+    min-width: 120px;
+    justify-content: center;
+    min-height: 48px;
+}
+
+.radio-item:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.radio-item.selected {
+    background: #eff6ff;
+    border-color: #3b82f6;
+    color: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+}
+
+/* ==================== CHARTS ==================== */
+
+.chart-container {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    max-height: 400px;
+    overflow: hidden;
+    position: relative;
+}
+
+.chart-container canvas {
+    max-height: 300px !important;
+    width: 100% !important;
+}
+
+.chart-container:last-child {
+    max-height: 500px;
+}
+
+.chart-container:last-child canvas {
+    max-height: 400px !important;
+}
+
+/* ==================== MODALS ==================== */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 20px 25px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* ==================== LOADING & ANIMATIONS ==================== */
+
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    backdrop-filter: blur(5px);
+}
+
+.spinner {
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top: 4px solid #fff;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.notification-toast {
+    animation: slideInNotification 0.3s ease-out;
+}
+
+@keyframes slideInNotification {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.tab-content {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==================== UTILITIES ==================== */
+
+.search-highlight {
+    background-color: #fef3c7;
+    padding: 0.1rem;
+    border-radius: 0.25rem;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ==================== MOBILE FIRST RESPONSIVE ==================== */
+
+/* Extra Small Devices (phones, 320px and up) */
+@media (max-width: 480px) {
+    body {
+        font-size: 14px;
+    }
+    
+    .dashboard-container {
+        margin: 0.5rem;
+        border-radius: 12px;
+        padding: 1rem !important;
+    }
+    
+    .welcome-banner {
+        padding: 1rem;
+        text-align: center;
+        border-radius: 12px;
+    }
+    
+    .welcome-banner h1 {
+        font-size: 1.25rem !important;
+        margin-bottom: 0.5rem;
+    }
+    
+    .welcome-banner p {
+        font-size: 0.875rem !important;
+        margin-bottom: 1rem;
+    }
+    
+    /* Statistics Cards - Stack vertically */
+    .grid-cols-2, .grid-cols-3, .grid-cols-4 {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+    
+    .stat-card {
+        padding: 1rem;
+        text-align: center;
+    }
+    
+    .stat-card .text-2xl {
+        font-size: 1.5rem;
+    }
+    
+    /* Tabs - Scroll horizontally */
+    .flex.flex-wrap {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        padding-bottom: 0.5rem;
+    }
+    
+    .flex.flex-wrap::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .tab {
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
+        min-width: 120px;
+        flex-shrink: 0;
+    }
+    
+    .tab i {
+        display: none; /* Hide icons on mobile */
+    }
+    
+    /* Quick Actions */
+    .quick-action-btn {
+        padding: 0.75rem 1rem;
+        font-size: 0.8rem;
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Student Cards */
+    .student-card {
+        margin-bottom: 1rem;
+    }
+    
+    .student-card .flex {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 0.75rem;
+    }
+    
+    .student-card .status-badge {
+        margin-top: 0.5rem;
+    }
+    
+    /* Assessment Form */
+    .radio-group {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .radio-item {
+        min-width: auto;
+        width: 100%;
+        justify-content: flex-start;
+        padding: 0.75rem;
+    }
+    
+    .question-item {
+        padding: 1rem;
+    }
+    
+    /* Charts */
+    .chart-container {
+        max-height: 300px;
+        padding: 1rem;
+        margin: 0.5rem 0;
+    }
+    
+    .chart-container canvas {
+        max-height: 200px !important;
+    }
+    
+    .chart-container:last-child {
+        max-height: 350px;
+    }
+    
+    .chart-container:last-child canvas {
+        max-height: 250px !important;
+    }
+    
+    /* Modal */
+    .modal-content {
+        padding: 1rem;
+        margin: 0.5rem;
+        border-radius: 12px;
+        max-height: 95vh;
+    }
+    
+    /* Search and Form Controls */
+    .flex.gap-2 {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    input[type="text"], select {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* Small Devices (landscape phones, 481px to 768px) */
+@media (min-width: 481px) and (max-width: 768px) {
+    .dashboard-container {
+        margin: 1rem;
+        padding: 1.5rem !important;
+    }
+    
+    .grid-cols-4 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .grid-cols-3 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .tab {
+        font-size: 0.9rem;
+        padding: 0.625rem 1.25rem;
+    }
+    
+    .chart-container {
+        max-height: 350px;
+    }
+    
+    .chart-container canvas {
+        max-height: 250px !important;
+    }
+    
+    .chart-container:last-child canvas {
+        max-height: 300px !important;
+    }
+}
+
+/* Medium Devices (tablets, 769px to 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .dashboard-container {
+        margin: 1.5rem;
+    }
+    
+    .grid-cols-4 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .lg\\:grid-cols-4 {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .lg\\:grid-cols-3 {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .lg\\:grid-cols-2 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Large Devices (desktops, 1025px and up) */
+@media (min-width: 1025px) {
+    .lg\\:grid-cols-4 {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .lg\\:grid-cols-3 {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .lg\\:grid-cols-2 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .lg\\:flex-row {
+        flex-direction: row;
+    }
+    
+    .lg\\:items-center {
+        align-items: center;
+    }
+    
+    .lg\\:text-3xl {
+        font-size: 1.875rem;
+    }
+}
+
+/* ==================== TOUCH & INTERACTION IMPROVEMENTS ==================== */
+
+/* Better touch targets */
+button, .btn-secondary, .btn-success, .quick-action-btn {
+    min-height: 44px;
+    min-width: 44px;
+}
+
+/* Smooth scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Better focus states for accessibility */
+button:focus, input:focus, select:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+/* Prevent text selection on buttons */
+button, .btn-secondary, .btn-success, .quick-action-btn {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* ==================== PRINT STYLES ==================== */
+
+@media print {
+    body {
+        background: white !important;
+    }
+    
+    .dashboard-container {
+        box-shadow: none !important;
+        background: white !important;
+    }
+    
+    .welcome-banner {
+        background: #667eea !important;
+        -webkit-print-color-adjust: exact;
+    }
+    
+    .quick-action-btn, .btn-secondary, .btn-success {
+        display: none !important;
+    }
+    
+    .chart-container {
+        page-break-inside: avoid;
+    }
+}
+
+/* ==================== DARK MODE SUPPORT (Optional) ==================== */
+
+@media (prefers-color-scheme: dark) {
+    /* Add dark mode styles if needed */
+}
+
+/* ==================== HIGH CONTRAST MODE ==================== */
+
+@media (prefers-contrast: high) {
+    .student-card {
+        border: 2px solid #000;
+    }
+    
+    .stat-card {
+        border: 2px solid #fff;
+    }
+    
+    .quick-action-btn {
+        border: 2px solid #fff;
+    }
+}
