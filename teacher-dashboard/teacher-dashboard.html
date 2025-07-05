@@ -2358,26 +2358,5 @@
         
         console.log('🎓 Teacher Dashboard initialized successfully!');
     </script>
-    
-    <!-- Load non-critical JavaScript after DOM -->
-    <script defer>
-        // Performance optimization: Load heavy functions after page load
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize app after everything is loaded
-            initializeApp();
-        });
-        
-        function initializeApp() {
-            // Check authentication
-            if (!getCurrentUser()) {
-                redirectToLogin();
-                return;
-            }
-            
-            // Initialize UI and load data
-            setupUI();
-            loadInitialData();
-        }
-    </script>
 </body>
 </html>
