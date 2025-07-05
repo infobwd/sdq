@@ -230,20 +230,25 @@
     <main class="container-mobile py-4 flex-grow">
         <!-- Tab Navigation -->
         <div class="tab-container bg-white/90 backdrop-blur-sm rounded-lg p-1 mb-4 no-print">
-            <!-- Quick Navigation (เพิ่มใหม่) -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
-                <a href="navigation.html" class="btn-mobile bg-gray-600 hover:bg-gray-700 text-white text-center text-xs">
-                    🏠 หน้าแรก
-                </a>
-                <a href="login.html" class="btn-mobile bg-blue-600 hover:bg-blue-700 text-white text-center text-xs">
-                    🔐 เข้าสู่ระบบ
-                </a>
-                <a href="teacher-dashboard.html" class="btn-mobile bg-green-600 hover:bg-green-700 text-white text-center text-xs">
-                    👩‍🏫 Dashboard ครู
-                </a>
-                <a href="usermanage.html" class="btn-mobile bg-red-600 hover:bg-red-700 text-white text-center text-xs">
-                    👥 จัดการผู้ใช้
-                </a>
+            <div class="flex space-x-1">
+                <button id="tab-home" class="tab-btn text-gray-600 hover:text-indigo-600 rounded-md transition-colors">
+                    🏠 หน้าหลัก
+                </button>
+                <button id="tab-student" class="tab-btn text-gray-600 hover:text-indigo-600 rounded-md transition-colors">
+                    👨‍🎓 นักเรียน
+                </button>
+                <button id="tab-teacher" class="tab-btn text-gray-600 hover:text-indigo-600 rounded-md transition-colors">
+                    👩‍🏫 ครู
+                </button>
+                <button id="tab-parent" class="tab-btn text-gray-600 hover:text-indigo-600 rounded-md transition-colors">
+                    👨‍👩‍👧‍👦 ผู้ปกครอง
+                </button>
+                <button id="tab-results" class="tab-btn text-gray-600 hover:text-indigo-600 rounded-md transition-colors">
+                    📊 ผลรายบุคคล
+                </button>
+                <button id="tab-summary" class="tab-btn text-gray-600 hover:text-indigo-600 rounded-md transition-colors">
+                    📈 สรุปภาพรวม
+                </button>
             </div>
         </div>
 
@@ -285,17 +290,21 @@
                     <!-- Quick Start -->
                     <div>
                         <h3 class="text-lg font-semibold mb-3 text-indigo-700">🚀 เริ่มใช้งานด่วน</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <button id="quick-student" class="btn-mobile bg-blue-500 hover:bg-blue-600 text-white text-center">
-                                👨‍🎓 ประเมินตนเอง
-                            </button>
-                            <button id="quick-teacher" class="btn-mobile bg-green-500 hover:bg-green-600 text-white text-center">
-                                👩‍🏫 ครูประเมิน
-                            </button>
-                            <button id="quick-parent" class="btn-mobile bg-purple-500 hover:bg-purple-600 text-white text-center">
-                                👨‍👩‍👧‍👦 ผู้ปกครองประเมิน
-                            </button>
-                        </div>
+                            <!-- Quick Navigation (เพิ่มใหม่) -->
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+                                <a href="navigation.html" class="btn-mobile bg-gray-600 hover:bg-gray-700 text-white text-center text-xs">
+                                    🏠 หน้าแรก
+                                </a>
+                                <a href="login.html" class="btn-mobile bg-blue-600 hover:bg-blue-700 text-white text-center text-xs">
+                                    🔐 เข้าสู่ระบบ
+                                </a>
+                                <a href="teacher-dashboard.html" class="btn-mobile bg-green-600 hover:bg-green-700 text-white text-center text-xs">
+                                    👩‍🏫 Dashboard ครู
+                                </a>
+                                <a href="usermanage.html" class="btn-mobile bg-red-600 hover:bg-red-700 text-white text-center text-xs">
+                                    👥 จัดการผู้ใช้
+                                </a>
+                            </div>
                     </div>
 
                     <!-- Student Management -->
