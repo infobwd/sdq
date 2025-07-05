@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>เข้าสู่ระบบ - SDQ Assessment</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Thai Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        body { 
+            font-family: 'Sarabun', sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .login-container {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .input-group {
+            position: relative;
+        }
+        
+        .input-group input {
+            padding-left: 3rem;
+        }
+        
+        .input-group .icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6b7280;
+        }
+        
+        .role-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .role-super-admin { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
+        .role-school-admin { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; }
+        .role-teacher { background: linear-gradient(135deg, #10b981, #059669); color: white; }
+        .role-parent { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; }
+        
+        .welcome-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .user-menu {
+            position: relative;
+        }
+        
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            min-width: 200px;
+            z-index: 50;
+            transform: scale(0.95);
+            opacity: 0;
+            transition: all 0.2s ease;
+        }
+        
+        .user-dropdown.show {
+            transform: scale(1);
+            opacity: 1;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #fff;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .academic-year-selector {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <div id="loading-text">กำลังประมวลผล...</div>
+    </div>
+
+    <!-- Login Page -->
+    <div id="login-page" class="min-h-screen flex items-center justify-center p-4">
+        <div class="login-container w-full max-w-md p-8">
+            <!-- Logo and Title -->
+            <div class="text-center mb-8">
+                <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-graduation-cap text-white text-2xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-800 mb-2">ระบบประเมิน SDQ</h1>
+                <p class="text-gray-600 text-sm">เข้าสู่ระบบเพื่อดำเนินการต่อ</p>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" class="space-y-6">
+                <div class="input-group">
+                    <div class="icon">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        placeholder="ชื่อผู้ใช้หรืออีเมล"
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                        required
+                    >
+                </div>
+
+                <div class="input-group">
+                    <div class="icon">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        placeholder="รหัสผ่าน"
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                        required
+                    >
+                    <button 
+                        type="button" 
+                        id="toggle-password"
+                        class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+
+                <div class="flex items-center justify-between text-sm">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="remember-me" class="mr-2 rounded">
+                        <span class="text-gray-600">จดจำการเข้าสู่ระบบ</span>
+                    </label>
+                    <a href="#" class="text-blue-600 hover:text-blue-800">ลืมรหัสผ่าน?</a>
+                </div>
+
+                <button 
+                    type="submit" 
+                    class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-200 transform hover:scale-105"
+                >
+                    <i class="fas fa-sign-in-alt mr-2"></i>
+                    เข้าสู่ระบบ
+                </button>
+            </form>
+
+            <!-- Demo Accounts -->
+            <div class="mt-8 pt-6 border-t border-gray-200">
+                <p class="text-center text-sm text-gray-600 mb-4">บัญชีทดสอบ:</p>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <button class="demo-login p-2 bg-red-50 text-red-700 rounded border hover:bg-red-100" data-role="admin">
+                        <i class="fas fa-crown mr-1"></i>Admin
+                    </button>
+                    <button class="demo-login p-2 bg-blue-50 text-blue-700 rounded border hover:bg-blue-100" data-role="school_admin">
+                        <i class="fas fa-school mr-1"></i>ผู้บริหาร
+                    </button>
+                    <button class="demo-login p-2 bg-green-50 text-green-700 rounded border hover:bg-green-100" data-role="teacher">
+                        <i class="fas fa-chalkboard-teacher mr-1"></i>ครู
+                    </button>
+                    <button class="demo-login p-2 bg-purple-50 text-purple-700 rounded border hover:bg-purple-100" data-role="parent">
+                        <i class="fas fa-users mr-1"></i>ผู้ปกครอง
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="main-app" class="hidden min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b">
+            <div class="container mx-auto px-4 py-3">
+                <div class="flex items-center justify-between">
+                    <!-- Logo and Title -->
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-graduation-cap text-white"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-lg font-bold text-gray-800">ระบบประเมิน SDQ</h1>
+                            <p class="text-xs text-gray-600" id="current-academic-year">ปีการศึกษา 2567/2568</p>
+                        </div>
+                    </div>
+
+                    <!-- User Menu -->
+                    <div class="user-menu">
+                        <button id="user-menu-btn" class="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                            <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                                <i class="fas fa-user text-white text-sm"></i>
+                            </div>
+                            <div class="hidden sm:block text-left">
+                                <p class="text-sm font-medium text-gray-800" id="user-full-name">ผู้ใช้งาน</p>
+                                <p class="text-xs text-gray-600" id="user-role-display">บทบาท</p>
+                            </div>
+                            <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+                        </button>
+
+                        <!-- Dropdown Menu -->
+                        <div id="user-dropdown" class="user-dropdown">
+                            <div class="p-4 border-b border-gray-100">
+                                <p class="text-sm font-medium text-gray-800" id="dropdown-user-name">ผู้ใช้งาน</p>
+                                <p class="text-xs text-gray-600" id="dropdown-user-email">email@example.com</p>
+                                <div class="mt-2">
+                                    <span id="dropdown-user-role" class="role-badge role-teacher">
+                                        <i class="fas fa-chalkboard-teacher mr-1"></i>ครู
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <!-- Academic Year Selector -->
+                            <div class="p-4 border-b border-gray-100">
+                                <label class="block text-xs font-medium text-gray-700 mb-2">ปีการศึกษา</label>
+                                <select id="academic-year-selector" class="w-full text-sm p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="">กำลังโหลด...</option>
+                                </select>
+                            </div>
+                            
+                            <div class="p-2">
+                                <button id="profile-btn" class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors">
+                                    <i class="fas fa-user-cog mr-2"></i>จัดการโปรไฟล์
+                                </button>
+                                <button id="settings-btn" class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors">
+                                    <i class="fas fa-cog mr-2"></i>ตั้งค่า
+                                </button>
+                                <hr class="my-2">
+                                <button id="logout-btn" class="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors">
+                                    <i class="fas fa-sign-out-alt mr-2"></i>ออกจากระบบ
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 bg-gray-50">
+            <!-- Welcome Section -->
+            <div class="container mx-auto px-4 py-6">
+                <div class="welcome-card">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xl font-bold mb-2">ยินดีต้อนรับ, <span id="welcome-user-name">ผู้ใช้งาน</span>!</h2>
+                            <p class="text-blue-100" id="welcome-message">พร้อมเริ่มงานในวันนี้แล้ว</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-blue-100 text-sm">เข้าสู่ระบบล่าสุด</p>
+                            <p class="text-white text-sm font-medium" id="last-login-time">เมื่อสักครู่</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions based on Role -->
+                <div id="quick-actions" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    <!-- Quick actions will be populated based on user role -->
+                </div>
+
+                <!-- Role-specific Dashboard -->
+                <div id="role-dashboard">
+                    <!-- Dashboard content will be populated based on user role -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Configuration
+        const GAS_WEB_APP_URL = 'YOUR_GAS_WEB_APP_URL_HERE'; // ⚠️ ต้องเปลี่ยนเป็น URL จริง
+        
+        // Global Variables
+        let currentUser = null;
+        let currentSession = null;
+        let academicYears = [];
+        let currentAcademicYear = null;
+
+        // Utility Functions
+        function showLoading(show = true, message = "กำลังประมวลผล...") {
+            const overlay = document.getElementById('loading-overlay');
+            const text = document.getElementById('loading-text');
+            text.textContent = message;
+            overlay.classList.toggle('hidden', !show);
+        }
+
+        function showSuccess(message, title = "สำเร็จ!") {
+            return Swal.fire({
+                icon: 'success',
+                title: title,
+                text: message,
+                confirmButtonText: 'ตกลง',
+                confirmButtonColor: '#10b981'
+            });
+        }
+
+        function showError(message, title = "เกิดข้อผิดพลาด!") {
+            return Swal.fire({
+                icon: 'error',
+                title: title,
+                text: message,
+                confirmButtonText: 'ตกลง',
+                confirmButtonColor: '#ef4444'
+            });
+        }
+
+        function showConfirm(message, title = "ยืนยันการดำเนินการ") {
+            return Swal.fire({
+                icon: 'question',
+                title: title,
+                text: message,
+                showCancelButton: true,
+                confirmButtonText: 'ยืนยัน',
+                cancelButtonText: 'ยกเลิก',
+                confirmButtonColor: '#3b82f6',
+                cancelButtonColor: '#6b7280'
+            });
+        }
+
+        // JSONP helper function
+        function makeJSONPRequest(action, data = {}) {
+            return new Promise((resolve, reject) => {
+                const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
+                
+                window[callbackName] = function(response) {
+                    delete window[callbackName];
+                    document.body.removeChild(script);
+                    resolve(response);
+                };
+                
+                const params = new URLSearchParams({
+                    action: action,
+                    callback: callbackName,
+                    ...data
+                });
+                
+                const script = document.createElement('script');
+                script.src = `${GAS_WEB_APP_URL}?${params.toString()}`;
+                
+                script.onerror = function() {
+                    delete window[callbackName];
+                    document.body.removeChild(script);
+                    reject(new Error('JSONP request failed'));
+                };
+                
+                document.body.appendChild(script);
+                
+                setTimeout(() => {
+                    if (window[callbackName]) {
+                        delete window[callbackName];
+                        document.body.removeChild(script);
+                        reject(new Error('Request timeout'));
+                    }
+                }, 30000);
+            });
+        }
+
+        // Authentication Functions
+        async function login(username, password, rememberMe = false) {
+            try {
+                showLoading(true, "กำลังตรวจสอบข้อมูลการเข้าสู่ระบบ...");
+                
+                const response = await makeJSONPRequest('authenticateUser', {
+                    username: username,
+                    password: password
+                });
+                
+                showLoading(false);
+                
+                if (response && response.success) {
+                    currentUser = response.user;
+                    currentSession = response.sessionId;
+                    
+                    // Save session
+                    if (rememberMe) {
+                        localStorage.setItem('sdq_session', currentSession);
+                        localStorage.setItem('sdq_user', JSON.stringify(currentUser));
+                    } else {
+                        sessionStorage.setItem('sdq_session', currentSession);
+                        sessionStorage.setItem('sdq_user', JSON.stringify(currentUser));
+                    }
+                    
+                    await showSuccess('เข้าสู่ระบบสำเร็จ!');
+                    await loadMainApplication();
+                    
+                } else {
+                    showError(response ? response.message : 'ไม่สามารถเข้าสู่ระบบได้');
+                }
+                
+            } catch (error) {
+                showLoading(false);
+                showError(`ไม่สามารถเข้าสู่ระบบได้: ${error.message}`);
+                console.error('Login error:', error);
+            }
+        }
+
+        async function logout() {
+            const result = await showConfirm('คุณต้องการออกจากระบบหรือไม่?', 'ออกจากระบบ');
+            
+            if (result.isConfirmed) {
+                try {
+                    showLoading(true, "กำลังออกจากระบบ...");
+                    
+                    // Clear session from server (optional)
+                    if (currentSession) {
+                        await makeJSONPRequest('logout', { sessionId: currentSession });
+                    }
+                    
+                    // Clear local storage
+                    localStorage.removeItem('sdq_session');
+                    localStorage.removeItem('sdq_user');
+                    sessionStorage.removeItem('sdq_session');
+                    sessionStorage.removeItem('sdq_user');
+                    
+                    currentUser = null;
+                    currentSession = null;
+                    
+                    showLoading(false);
+                    showLoginPage();
+                    
+                } catch (error) {
+                    showLoading(false);
+                    console.error('Logout error:', error);
+                    // ออกจากระบบแม้จะมี error
+                    showLoginPage();
+                }
+            }
+        }
+
+        async function validateSession(sessionId) {
+            try {
+                if (!sessionId) return false;
+                
+                const response = await makeJSONPRequest('validateSession', { sessionId: sessionId });
+                
+                if (response && response.success && response.user) {
+                    currentUser = response.user;
+                    currentSession = sessionId;
+                    return true;
+                }
+                
+                return false;
+                
+            } catch (error) {
+                console.error('Session validation error:', error);
+                return false;
+            }
+        }
+
+        // UI Functions
+        function showLoginPage() {
+            document.getElementById('login-page').classList.remove('hidden');
+            document.getElementById('main-app').classList.add('hidden');
+        }
+
+        function showMainApp() {
+            document.getElementById('login-page').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+        }
+
+        async function loadMainApplication() {
+            try {
+                showLoading(true, "กำลังโหลดข้อมูล...");
+                
+                // Load academic years
+                await loadAcademicYears();
+                
+                // Setup UI
+                updateUserInterface();
+                setupUserMenu();
+                loadQuickActions();
+                loadRoleDashboard();
+                
+                showLoading(false);
+                showMainApp();
+                
+            } catch (error) {
+                showLoading(false);
+                showError(`ไม่สามารถโหลดระบบได้: ${error.message}`);
+                console.error('Load application error:', error);
+            }
+        }
+
+        async function loadAcademicYears() {
+            try {
+                const response = await makeJSONPRequest('getAcademicYears');
+                
+                if (response && Array.isArray(response)) {
+                    academicYears = response;
+                    currentAcademicYear = academicYears.find(year => year.isActive) || academicYears[0];
+                    
+                    // Update academic year selector
+                    const selector = document.getElementById('academic-year-selector');
+                    selector.innerHTML = '';
+                    
+                    academicYears.forEach(year => {
+                        const option = document.createElement('option');
+                        option.value = year.id;
+                        option.textContent = year.name;
+                        option.selected = year.isActive;
+                        selector.appendChild(option);
+                    });
+                }
+                
+            } catch (error) {
+                console.error('Error loading academic years:', error);
+            }
+        }
+
+        function updateUserInterface() {
+            if (!currentUser) return;
+            
+            // Update user info
+            document.getElementById('user-full-name').textContent = currentUser.fullName;
+            document.getElementById('dropdown-user-name').textContent = currentUser.fullName;
+            document.getElementById('dropdown-user-email').textContent = currentUser.email;
+            document.getElementById('welcome-user-name').textContent = currentUser.fullName;
+            
+            // Update role display
+            const roleInfo = getRoleInfo(currentUser.role);
+            document.getElementById('user-role-display').textContent = roleInfo.label;
+            
+            const roleElement = document.getElementById('dropdown-user-role');
+            roleElement.className = `role-badge role-${roleInfo.class}`;
+            roleElement.innerHTML = `<i class="${roleInfo.icon} mr-1"></i>${roleInfo.label}`;
+            
+            // Update current academic year
+            if (currentAcademicYear) {
+                document.getElementById('current-academic-year').textContent = `ปีการศึกษา ${currentAcademicYear.name}`;
+            }
+            
+            // Update welcome message
+            const welcomeMessages = {
+                'SUPER_ADMIN': 'พร้อมจัดการระบบและข้อมูลทั้งหมด',
+                'SCHOOL_ADMIN': 'พร้อมดูแลโรงเรียนและข้อมูลนักเรียน',
+                'TEACHER': 'พร้อมประเมินและดูแลนักเรียนในชั้นเรียน',
+                'PARENT': 'พร้อมติดตามพัฒนาการของบุตรหลาน'
+            };
+            document.getElementById('welcome-message').textContent = welcomeMessages[currentUser.role] || 'พร้อมเริ่มงานในวันนี้แล้ว';
+        }
+
+        function getRoleInfo(role) {
+            const roleMap = {
+                'SUPER_ADMIN': { label: 'ผู้ดูแลระบบสูงสุด', class: 'super-admin', icon: 'fas fa-crown' },
+                'SCHOOL_ADMIN': { label: 'ผู้บริหารโรงเรียน', class: 'school-admin', icon: 'fas fa-school' },
+                'TEACHER': { label: 'ครู', class: 'teacher', icon: 'fas fa-chalkboard-teacher' },
+                'PARENT': { label: 'ผู้ปกครอง', class: 'parent', icon: 'fas fa-users' }
+            };
+            return roleMap[role] || { label: 'ผู้ใช้งาน', class: 'teacher', icon: 'fas fa-user' };
+        }
+
+        function setupUserMenu() {
+            const menuBtn = document.getElementById('user-menu-btn');
+            const dropdown = document.getElementById('user-dropdown');
+            
+            menuBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dropdown.classList.toggle('show');
+            });
+            
+            document.addEventListener('click', () => {
+                dropdown.classList.remove('show');
+            });
+            
+            dropdown.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+        }
+
+        function loadQuickActions() {
+            const container = document.getElementById('quick-actions');
+            const actions = getQuickActionsForRole(currentUser.role);
+            
+            container.innerHTML = actions.map(action => `
+                <div class="bg-white rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer" onclick="${action.onclick}">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 ${action.color} rounded-lg flex items-center justify-center mr-4">
+                            <i class="${action.icon} text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">${action.title}</h3>
+                            <p class="text-gray-600 text-sm">${action.description}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-blue-600 text-sm font-medium">เริ่มใช้งาน →</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getQuickActionsForRole(role) {
+            const commonActions = [
+                {
+                    title: 'ดูผลการประเมิน',
+                    description: 'ตรวจสอบผลการประเมิน SDQ',
+                    icon: 'fas fa-chart-bar',
+                    color: 'bg-blue-500',
+                    onclick: 'navigateToResults()'
+                }
+            ];
+            
+            const roleSpecificActions = {
+                'SUPER_ADMIN': [
+                    {
+                        title: 'จัดการผู้ใช้งาน',
+                        description: 'เพิ่ม แก้ไข ลบผู้ใช้งาน',
+                        icon: 'fas fa-users-cog',
+                        color: 'bg-red-500',
+                        onclick: 'navigateToUserManagement()'
+                    },
+                    {
+                        title: 'จัดการปีการศึกษา',
+                        description: 'สร้างและจัดการปีการศึกษา',
+                        icon: 'fas fa-calendar-alt',
+                        color: 'bg-purple-500',
+                        onclick: 'navigateToAcademicYearManagement()'
+                    }
+                ],
+                'SCHOOL_ADMIN': [
+                    {
+                        title: 'รายงานภาพรวม',
+                        description: 'สรุปผลการประเมินทั้งโรงเรียน',
+                        icon: 'fas fa-chart-pie',
+                        color: 'bg-green-500',
+                        onclick: 'navigateToSummary()'
+                    },
+                    {
+                        title: 'จัดการครู',
+                        description: 'มอบหมายชั้นเรียนและนักเรียน',
+                        icon: 'fas fa-chalkboard-teacher',
+                        color: 'bg-blue-500',
+                        onclick: 'navigateToTeacherManagement()'
+                    }
+                ],
+                'TEACHER': [
+                    {
+                        title: 'ประเมินนักเรียน',
+                        description: 'ทำการประเมิน SDQ นักเรียน',
+                        icon: 'fas fa-clipboard-check',
+                        color: 'bg-green-500',
+                        onclick: 'navigateToAssessment()'
+                    },
+                    {
+                        title: 'นักเรียนในชั้น',
+                        description: 'ดูรายชื่อและผลการประเมิน',
+                        icon: 'fas fa-users',
+                        color: 'bg-purple-500',
+                        onclick: 'navigateToMyStudents()'
+                    }
+                ],
+                'PARENT': [
+                    {
+                        title: 'ประเมินบุตรหลาน',
+                        description: 'ทำการประเมิน SDQ บุตรหลาน',
+                        icon: 'fas fa-heart',
+                        color: 'bg-pink-500',
+                        onclick: 'navigateToParentAssessment()'
+                    }
+                ]
+            };
+            
+            return [...commonActions, ...(roleSpecificActions[role] || [])];
+        }
+
+        function loadRoleDashboard() {
+            const container = document.getElementById('role-dashboard');
+            
+            // Dashboard content based on role
+            const dashboardContent = {
+                'SUPER_ADMIN': `
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-lg p-6 shadow-sm">
+                            <h3 class="text-lg font-semibold mb-4">สถิติระบบ</h3>
+                            <div class="space-y-3">
+                                <div class="flex justify-between">
+                                    <span>ผู้ใช้งานทั้งหมด</span>
+                                    <span class="font-medium">-</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>นักเรียนในระบบ</span>
+                                    <span class="font-medium">-</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>การประเมินวันนี้</span>
+                                    <span class="font-medium">-</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-lg p-6 shadow-sm">
+                            <h3 class="text-lg font-semibold mb-4">กิจกรรมล่าสุด</h3>
+                            <div class="text-gray-500 text-center py-8">
+                                <i class="fas fa-clock text-2xl mb-2"></i>
+                                <p>ไม่มีกิจกรรมล่าสุด</p>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                'SCHOOL_ADMIN': `
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="bg-white rounded-lg p-6 shadow-sm">
+                            <h3 class="text-lg font-semibold mb-4">สรุปผลการประเมิน</h3>
+                            <div class="text-center">
+                                <div class="text-3xl font-bold text-green-500 mb-2">-</div>
+                                <p class="text-gray-600">นักเรียนที่ประเมินแล้ว</p>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-lg p-6 shadow-sm">
+                            <h3 class="text-lg font-semibold mb-4">นักเรียนที่ต้องดูแล</h3>
+                            <div class="text-center">
+                                <div class="text-3xl font-bold text-orange-500 mb-2">-</div>
+                                <p class="text-gray-600">ต้องการความช่วยเหลือ</p>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-lg p-6 shadow-sm">
+                            <h3 class="text-lg font-semibold mb-4">ครูที่ใช้งาน</h3>
+                            <div class="text-center">
+                                <div class="text-3xl font-bold text-blue-500 mb-2">-</div>
+                                <p class="text-gray-600">ครูในระบบ</p>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                'TEACHER': `
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-lg p-6 shadow-sm">
+                            <h3 class="text-lg font-semibold mb-4">นักเรียนในชั้นเรียน</h3>
+                            <div class="text-center py-4">
+                                <div class="text-2xl font-bold text-blue-500 mb-2">-</div>
+                                <p class="text-gray-600">นักเรียนทั้งหมด</p>
+                                <button class="mt-3 text-blue-600 text-sm hover:underline">ดูรายละเอียด</button>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-lg p-6 shadow-sm">
+                            <h3 class="text-lg font-semibold mb-4">การประเมินล่าสุด</h3>
+                            <div class="text-gray-500 text-center py-8">
+                                <i class="fas fa-clipboard-list text-2xl mb-2"></i>
+                                <p>ยังไม่มีการประเมิน</p>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                'PARENT': `
+                    <div class="bg-white rounded-lg p-6 shadow-sm">
+                        <h3 class="text-lg font-semibold mb-4">บุตรหลานของคุณ</h3>
+                        <div class="text-gray-500 text-center py-8">
+                            <i class="fas fa-child text-2xl mb-2"></i>
+                            <p>ไม่มีข้อมูลบุตรหลาน</p>
+                            <p class="text-sm">กรุณาติดต่อโรงเรียนเพื่อเชื่อมโยงข้อมูล</p>
+                        </div>
+                    </div>
+                `
+            };
+            
+            container.innerHTML = dashboardContent[currentUser.role] || '';
+        }
+
+        // Navigation Functions (placeholders)
+        function navigateToResults() {
+            showSuccess('กำลังพัฒนา...', 'ฟีเจอร์นี้');
+        }
+
+        function navigateToUserManagement() {
+            showSuccess('กำลังพัฒนา...', 'ฟีเจอร์นี้');
+        }
+
+        function navigateToAcademicYearManagement() {
+            showSuccess('กำลังพัฒนา...', 'ฟีเจอร์นี้');
+        }
+
+        function navigateToSummary() {
+            showSuccess('กำลังพัฒนา...', 'ฟีเจอร์นี้');
+        }
+
+        function navigateToTeacherManagement() {
+            showSuccess('กำลังพัฒนา...', 'ฟีเจอร์นี้');
+        }
+
+        function navigateToAssessment() {
+            showSuccess('กำลังพัฒนา...', 'ฟีเจอร์นี้');
+        }
+
+        function navigateToMyStudents() {
+            showSuccess('กำลังพัฒนา...', 'ฟีเจอร์นี้');
+        }
+
+        function navigateToParentAssessment() {
+            showSuccess('กำลังพัฒนา...', 'ฟีเจอร์นี้');
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if GAS_WEB_APP_URL is configured
+            if (GAS_WEB_APP_URL === 'YOUR_GAS_WEB_APP_URL_HERE') {
+                showError('กรุณาตั้งค่า URL ของ Google Apps Script', 'ยังไม่ได้ตั้งค่า');
+                return;
+            }
+
+            // Check for existing session
+            checkExistingSession();
+
+            // Login form
+            document.getElementById('login-form').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const username = document.getElementById('username').value.trim();
+                const password = document.getElementById('password').value;
+                const rememberMe = document.getElementById('remember-me').checked;
+                
+                if (!username || !password) {
+                    showError('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน');
+                    return;
+                }
+                
+                await login(username, password, rememberMe);
+            });
+
+            // Password toggle
+            document.getElementById('toggle-password').addEventListener('click', function() {
+                const passwordInput = document.getElementById('password');
+                const icon = this.querySelector('i');
+                
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    icon.className = 'fas fa-eye-slash';
+                } else {
+                    passwordInput.type = 'password';
+                    icon.className = 'fas fa-eye';
+                }
+            });
+
+            // Demo login buttons
+            document.querySelectorAll('.demo-login').forEach(button => {
+                button.addEventListener('click', function() {
+                    const role = this.dataset.role;
+                    const credentials = getDemoCredentials(role);
+                    
+                    document.getElementById('username').value = credentials.username;
+                    document.getElementById('password').value = credentials.password;
+                    
+                    Swal.fire({
+                        title: 'บัญชีทดสอบ',
+                        html: `
+                            <p><strong>ชื่อผู้ใช้:</strong> ${credentials.username}</p>
+                            <p><strong>รหัสผ่าน:</strong> ${credentials.password}</p>
+                            <p class="text-sm text-gray-600 mt-2">ข้อมูลถูกกรอกในฟอร์มแล้ว คลิกเข้าสู่ระบบ</p>
+                        `,
+                        icon: 'info',
+                        confirmButtonText: 'ตกลง'
+                    });
+                });
+            });
+
+            // Logout button
+            document.getElementById('logout-btn').addEventListener('click', logout);
+
+            // Academic year selector
+            document.getElementById('academic-year-selector').addEventListener('change', function() {
+                const selectedYearId = this.value;
+                changeAcademicYear(selectedYearId);
+            });
+
+            // Other menu buttons
+            document.getElementById('profile-btn').addEventListener('click', function() {
+                showSuccess('กำลังพัฒนา...', 'ฟีเจอร์นี้');
+            });
+
+            document.getElementById('settings-btn').addEventListener('click', function() {
+                showSuccess('กำลังพัฒนา...', 'ฟีเจอร์นี้');
+            });
+        });
+
+        function getDemoCredentials(role) {
+            const credentials = {
+                'admin': { username: 'admin', password: 'admin123' },
+                'school_admin': { username: 'school_admin', password: 'school123' },
+                'teacher': { username: 'teacher', password: 'teacher123' },
+                'parent': { username: 'parent', password: 'parent123' }
+            };
+            return credentials[role] || credentials['admin'];
+        }
+
+        async function checkExistingSession() {
+            const sessionId = localStorage.getItem('sdq_session') || sessionStorage.getItem('sdq_session');
+            const userData = localStorage.getItem('sdq_user') || sessionStorage.getItem('sdq_user');
+            
+            if (sessionId && userData) {
+                try {
+                    showLoading(true, "กำลังตรวจสอบการเข้าสู่ระบบ...");
+                    
+                    const isValid = await validateSession(sessionId);
+                    
+                    if (isValid) {
+                        await loadMainApplication();
+                    } else {
+                        // Invalid session, clear storage
+                        localStorage.removeItem('sdq_session');
+                        localStorage.removeItem('sdq_user');
+                        sessionStorage.removeItem('sdq_session');
+                        sessionStorage.removeItem('sdq_user');
+                        showLoading(false);
+                        showLoginPage();
+                    }
+                } catch (error) {
+                    showLoading(false);
+                    console.error('Session check error:', error);
+                    showLoginPage();
+                }
+            } else {
+                showLoginPage();
+            }
+        }
+
+        async function changeAcademicYear(yearId) {
+            try {
+                showLoading(true, "กำลังเปลี่ยนปีการศึกษา...");
+                
+                const response = await makeJSONPRequest('setActiveAcademicYear', {
+                    yearId: yearId,
+                    userId: currentUser.id
+                });
+                
+                if (response && response.success) {
+                    // Update current academic year
+                    currentAcademicYear = academicYears.find(year => year.id === yearId);
+                    
+                    // Update UI
+                    if (currentAcademicYear) {
+                        document.getElementById('current-academic-year').textContent = `ปีการศึกษา ${currentAcademicYear.name}`;
+                    }
+                    
+                    // Reload dashboard data
+                    loadRoleDashboard();
+                    
+                    showLoading(false);
+                    showSuccess('เปลี่ยนปีการศึกษาเรียบร้อยแล้ว');
+                } else {
+                    showLoading(false);
+                    showError(response ? response.message : 'ไม่สามารถเปลี่ยนปีการศึกษาได้');
+                }
+                
+            } catch (error) {
+                showLoading(false);
+                showError(`ไม่สามารถเปลี่ยนปีการศึกษาได้: ${error.message}`);
+                console.error('Change academic year error:', error);
+            }
+        }
+    </script>
+</body>
+</html>
