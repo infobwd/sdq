@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>จัดการผู้ใช้ - ระบบประเมิน SDQ</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Thai Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        body { 
+            font-family: 'Sarabun', sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .management-container {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .user-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+            transition: all 0.3s ease;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .user-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .role-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .role-super-admin { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
+        .role-school-admin { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; }
+        .role-teacher { background: linear-gradient(135deg, #10b981, #059669); color: white; }
+        .role-parent { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; }
+        
+        .status-active { background: #dcfce7; color: #166534; }
+        .status-inactive { background: #fef2f2; color: #dc2626; }
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 20px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #fff;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .search-highlight {
+            background-color: #fef3c7;
+            padding: 0.1rem;
+            border-radius: 0.25rem;
+        }
+        
+        .filter-tab {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .filter-tab.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .filter-tab:not(.active) {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+        
+        .filter-tab:not(.active):hover {
+            background: #e5e7eb;
+            color: #374151;
+        }
+        
+        .stats-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .form-input {
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            font-size: 0.95rem;
+        }
+        
+        .form-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.25);
+            outline: none;
+        }
+        
+        .student-assignment {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .student-item {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            padding: 0.5rem;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .student-item.selected {
+            background: #eff6ff;
+            border-color: #3b82f6;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <div id="loading-text">กำลังประมวลผล...</div>
+    </div>
+
+    <div class="min-h-screen p-4">
+        <!-- Header -->
+        <div class="management-container max-w-7xl mx-auto mb-6 p-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800 mb-2">👥 จัดการผู้ใช้งาน</h1>
+                    <p class="text-gray-600">เพิ่ม แก้ไข และจัดการผู้ใช้งานในระบบ</p>
+                </div>
+                <div class="flex gap-2 mt-4 sm:mt-0">
+                    <button id="refresh-btn" class="btn-secondary">
+                        <i class="fas fa-sync-alt mr-2"></i>รีเฟรช
+                    </button>
+                    <button id="add-user-btn" class="btn-primary">
+                        <i class="fas fa-plus mr-2"></i>เพิ่มผู้ใช้
+                    </button>
+                </div>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+                <div class="stats-card">
+                    <div class="text-2xl font-bold" id="total-users">-</div>
+                    <div class="text-sm opacity-90">ผู้ใช้ทั้งหมด</div>
+                </div>
+                <div class="stats-card">
+                    <div class="text-2xl font-bold" id="admin-count">-</div>
+                    <div class="text-sm opacity-90">ผู้ดูแลระบบ</div>
+                </div>
+                <div class="stats-card">
+                    <div class="text-2xl font-bold" id="teacher-count">-</div>
+                    <div class="text-sm opacity-90">ครู</div>
+                </div>
+                <div class="stats-card">
+                    <div class="text-2xl font-bold" id="parent-count">-</div>
+                    <div class="text-sm opacity-90">ผู้ปกครอง</div>
+                </div>
+                <div class="stats-card">
+                    <div class="text-2xl font-bold" id="active-count">-</div>
+                    <div class="text-sm opacity-90">ใช้งานอยู่</div>
+                </div>
+            </div>
+
+            <!-- Search and Filters -->
+            <div class="flex flex-col lg:flex-row gap-4 mb-6">
+                <div class="flex-1">
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            id="search-input" 
+                            placeholder="ค้นหาชื่อ, อีเมล, หรือบทบาท..."
+                            class="form-input w-full pl-10"
+                        >
+                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    </div>
+                </div>
+                <div class="flex gap-2 flex-wrap">
+                    <div class="filter-tab active" data-filter="all">
+                        <i class="fas fa-users mr-1"></i>ทั้งหมด
+                    </div>
+                    <div class="filter-tab" data-filter="SUPER_ADMIN">
+                        <i class="fas fa-crown mr-1"></i>Super Admin
+                    </div>
+                    <div class="filter-tab" data-filter="SCHOOL_ADMIN">
+                        <i class="fas fa-school mr-1"></i>School Admin
+                    </div>
+                    <div class="filter-tab" data-filter="TEACHER">
+                        <i class="fas fa-chalkboard-teacher mr-1"></i>ครู
+                    </div>
+                    <div class="filter-tab" data-filter="PARENT">
+                        <i class="fas fa-users mr-1"></i>ผู้ปกครอง
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Grid -->
+        <div class="management-container max-w-7xl mx-auto p-6">
+            <div id="users-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- User cards will be populated here -->
+            </div>
+            
+            <!-- Empty State -->
+            <div id="empty-state" class="text-center py-12 hidden">
+                <i class="fas fa-users text-6xl text-gray-300 mb-4"></i>
+                <h3 class="text-xl font-semibold text-gray-500 mb-2">ไม่พบผู้ใช้งาน</h3>
+                <p class="text-gray-400 mb-4">ลองเปลี่ยนคำค้นหาหรือตัวกรอง</p>
+                <button class="btn-primary" onclick="clearFilters()">
+                    <i class="fas fa-refresh mr-2"></i>ล้างตัวกรอง
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit User Modal -->
+    <div id="user-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="modal-title" class="text-2xl font-bold text-gray-800">เพิ่มผู้ใช้ใหม่</h2>
+                <button id="close-modal-btn" class="text-gray-500 hover:text-gray-700 text-2xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <form id="user-form">
+                <input type="hidden" id="user-id">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อผู้ใช้ *</label>
+                        <input type="text" id="username" class="form-input w-full" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">อีเมล</label>
+                        <input type="email" id="email" class="form-input w-full">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">รหัสผ่าน *</label>
+                        <input type="password" id="password" class="form-input w-full" required>
+                        <p class="text-xs text-gray-500 mt-1">อย่างน้อย 6 ตัวอักษร</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">ยืนยันรหัสผ่าน *</label>
+                        <input type="password" id="confirm-password" class="form-input w-full" required>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อ-นามสกุล *</label>
+                        <input type="text" id="full-name" class="form-input w-full" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">บทบาท *</label>
+                        <select id="role" class="form-input w-full" required>
+                            <option value="">-- เลือกบทบาท --</option>
+                            <option value="SCHOOL_ADMIN">ผู้บริหารโรงเรียน</option>
+                            <option value="TEACHER">ครู</option>
+                            <option value="PARENT">ผู้ปกครอง</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">โรงเรียน</label>
+                    <input type="text" id="school" class="form-input w-full" value="โรงเรียนบ้านวังด้ง">
+                </div>
+
+                <!-- Teacher-specific fields -->
+                <div id="teacher-fields" class="hidden">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">ชั้นเรียนที่สอน</label>
+                        <div id="class-assignment" class="student-assignment">
+                            <p class="text-sm text-gray-600 mb-3">เลือกชั้นเรียนที่ครูคนนี้จะสอน</p>
+                            <div id="available-classes" class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                <!-- Available classes will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Parent-specific fields -->
+                <div id="parent-fields" class="hidden">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">บุตรหลาน</label>
+                        <div id="student-assignment" class="student-assignment">
+                            <p class="text-sm text-gray-600 mb-3">เลือกนักเรียนที่เป็นบุตรหลาน</p>
+                            <div class="mb-3">
+                                <input type="text" id="student-search" class="form-input w-full" placeholder="ค้นหาชื่อนักเรียน...">
+                            </div>
+                            <div id="available-students" class="max-h-60 overflow-y-auto">
+                                <!-- Available students will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="is-active" class="mr-2" checked>
+                        <span class="text-sm text-gray-700">เปิดใช้งานบัญชี</span>
+                    </label>
+                </div>
+
+                <div class="flex justify-end gap-3">
+                    <button type="button" id="cancel-btn" class="btn-secondary">ยกเลิก</button>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-save mr-2"></i>บันทึก
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const GAS_WEB_APP_URL = 'YOUR_GAS_WEB_APP_URL_HERE'; // ⚠️ ต้องเปลี่ยนเป็น URL จริง
+        
+        // Global Variables
+        let currentUser = null;
+        let allUsers = [];
+        let allStudents = [];
+        let availableClasses = [];
+        let filteredUsers = [];
+        let currentFilter = 'all';
+        let searchTerm = '';
+
+        // Utility Functions
+        function showLoading(show = true, message = "กำลังประมวลผล...") {
+            const overlay = document.getElementById('loading-overlay');
+            const text = document.getElementById('loading-text');
+            text.textContent = message;
+            overlay.classList.toggle('hidden', !show);
+        }
+
+        function showSuccess(message, title = "สำเร็จ!") {
+            return Swal.fire({
+                icon: 'success',
+                title: title,
+                text: message,
+                confirmButtonText: 'ตกลง',
+                confirmButtonColor: '#10b981'
+            });
+        }
+
+        function showError(message, title = "เกิดข้อผิดพลาด!") {
+            return Swal.fire({
+                icon: 'error',
+                title: title,
+                text: message,
+                confirmButtonText: 'ตกลง',
+                confirmButtonColor: '#ef4444'
+            });
+        }
+
+        function showConfirm(message, title = "ยืนยันการดำเนินการ") {
+            return Swal.fire({
+                icon: 'question',
+                title: title,
+                text: message,
+                showCancelButton: true,
+                confirmButtonText: 'ยืนยัน',
+                cancelButtonText: 'ยกเลิก',
+                confirmButtonColor: '#3b82f6',
+                cancelButtonColor: '#6b7280'
+            });
+        }
+
+        // JSONP helper function
+        function makeJSONPRequest(action, data = {}) {
+            return new Promise((resolve, reject) => {
+                const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
+                
+                window[callbackName] = function(response) {
+                    delete window[callbackName];
+                    document.body.removeChild(script);
+                    resolve(response);
+                };
+                
+                const params = new URLSearchParams({
+                    action: action,
+                    callback: callbackName,
+                    ...data
+                });
+                
+                const script = document.createElement('script');
+                script.src = `${GAS_WEB_APP_URL}?${params.toString()}`;
+                
+                script.onerror = function() {
+                    delete window[callbackName];
+                    document.body.removeChild(script);
+                    reject(new Error('JSONP request failed'));
+                };
+                
+                document.body.appendChild(script);
+                
+                setTimeout(() => {
+                    if (window[callbackName]) {
+                        delete window[callbackName];
+                        document.body.removeChild(script);
+                        reject(new Error('Request timeout'));
+                    }
+                }, 30000);
+            });
+        }
+
+        // Data Loading Functions
+        async function loadUsers() {
+            try {
+                showLoading(true, "กำลังโหลดข้อมูลผู้ใช้...");
+                
+                const response = await makeJSONPRequest('getUsersForManagement', {
+                    requesterId: currentUser.id
+                });
+                
+                if (response && response.success) {
+                    allUsers = response.users || [];
+                    updateStatistics();
+                    filterAndDisplayUsers();
+                } else {
+                    showError(response ? response.message : 'ไม่สามารถโหลดข้อมูลผู้ใช้ได้');
+                }
+                
+                showLoading(false);
+                
+            } catch (error) {
+                showLoading(false);
+                showError(`ไม่สามารถโหลดข้อมูลผู้ใช้ได้: ${error.message}`);
+                console.error('Load users error:', error);
+            }
+        }
+
+        async function loadStudents() {
+            try {
+                const response = await makeJSONPRequest('getStudents');
+                
+                if (response && Array.isArray(response)) {
+                    allStudents = response;
+                    
+                    // Extract unique classes
+                    availableClasses = [...new Set(allStudents.map(s => s.class).filter(c => c))];
+                    availableClasses.sort((a, b) => {
+                        // Sort classes naturally (ม.1/1, ม.1/2, etc.)
+                        return a.localeCompare(b, 'th', { numeric: true });
+                    });
+                }
+                
+            } catch (error) {
+                console.error('Load students error:', error);
+            }
+        }
+
+        // UI Functions
+        function updateStatistics() {
+            const stats = {
+                total: allUsers.length,
+                admin: allUsers.filter(u => u.role === 'SUPER_ADMIN' || u.role === 'SCHOOL_ADMIN').length,
+                teacher: allUsers.filter(u => u.role === 'TEACHER').length,
+                parent: allUsers.filter(u => u.role === 'PARENT').length,
+                active: allUsers.filter(u => u.isActive).length
+            };
+            
+            document.getElementById('total-users').textContent = stats.total;
+            document.getElementById('admin-count').textContent = stats.admin;
+            document.getElementById('teacher-count').textContent = stats.teacher;
+            document.getElementById('parent-count').textContent = stats.parent;
+            document.getElementById('active-count').textContent = stats.active;
+        }
+
+        function filterAndDisplayUsers() {
+            // Apply role filter
+            if (currentFilter === 'all') {
+                filteredUsers = allUsers;
+            } else {
+                filteredUsers = allUsers.filter(user => user.role === currentFilter);
+            }
+            
+            // Apply search filter
+            if (searchTerm) {
+                filteredUsers = filteredUsers.filter(user => {
+                    const searchFields = [
+                        user.username,
+                        user.fullName,
+                        user.email,
+                        user.role,
+                        user.school
+                    ].filter(field => field);
+                    
+                    return searchFields.some(field => 
+                        field.toLowerCase().includes(searchTerm.toLowerCase())
+                    );
+                });
+            }
+            
+            displayUsers();
+        }
+
+        function displayUsers() {
+            const container = document.getElementById('users-grid');
+            const emptyState = document.getElementById('empty-state');
+            
+            if (filteredUsers.length === 0) {
+                container.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            
+            container.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+            
+            container.innerHTML = filteredUsers.map(user => createUserCard(user)).join('');
+        }
+
+        function createUserCard(user) {
+            const roleInfo = getRoleInfo(user.role);
+            const statusClass = user.isActive ? 'status-active' : 'status-inactive';
+            const statusText = user.isActive ? 'ใช้งานอยู่' : 'ระงับการใช้งาน';
+            
+            return `
+                <div class="user-card p-6">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 ${roleInfo.bgColor} rounded-full flex items-center justify-center">
+                                <i class="${roleInfo.icon} text-white text-lg"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-800 text-lg">${highlightSearchTerm(user.fullName || user.username)}</h3>
+                                <p class="text-gray-600 text-sm">@${highlightSearchTerm(user.username)}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="role-badge role-${roleInfo.class}">
+                                <i class="${roleInfo.icon} mr-1"></i>${roleInfo.label}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-2 mb-4">
+                        ${user.email ? `<p class="text-sm text-gray-600"><i class="fas fa-envelope mr-2"></i>${highlightSearchTerm(user.email)}</p>` : ''}
+                        ${user.school ? `<p class="text-sm text-gray-600"><i class="fas fa-school mr-2"></i>${highlightSearchTerm(user.school)}</p>` : ''}
+                        ${user.lastLogin ? `<p class="text-sm text-gray-600"><i class="fas fa-clock mr-2"></i>เข้าสู่ระบบล่าสุด: ${formatDate(user.lastLogin)}</p>` : ''}
+                    </div>
+                    
+                    ${user.role === 'TEACHER' && user.assignedClasses && user.assignedClasses.length > 0 ? `
+                        <div class="mb-4">
+                            <p class="text-sm font-medium text-gray-700 mb-2">ชั้นเรียนที่สอน:</p>
+                            <div class="flex flex-wrap gap-1">
+                                ${user.assignedClasses.map(className => `
+                                    <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">${className}</span>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    ${user.role === 'PARENT' && user.assignedStudents && user.assignedStudents.length > 0 ? `
+                        <div class="mb-4">
+                            <p class="text-sm font-medium text-gray-700 mb-2">บุตรหลาน:</p>
+                            <div class="text-sm text-gray-600">
+                                ${user.assignedStudents.length} คน
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="flex items-center justify-between pt-4 border-t border-gray-200">
+                        <span class="px-2 py-1 rounded-full text-xs font-medium ${statusClass}">
+                            <i class="fas fa-circle mr-1"></i>${statusText}
+                        </span>
+                        <div class="flex space-x-2">
+                            <button onclick="editUser('${user.id}')" class="btn-secondary text-xs">
+                                <i class="fas fa-edit mr-1"></i>แก้ไข
+                            </button>
+                            ${user.role !== 'SUPER_ADMIN' ? `
+                                <button onclick="deleteUser('${user.id}', '${user.username}')" class="btn-danger text-xs">
+                                    <i class="fas fa-trash mr-1"></i>ลบ
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function highlightSearchTerm(text) {
+            if (!searchTerm || !text) return text;
+            
+            const regex = new RegExp(`(${searchTerm})`, 'gi');
+            return text.replace(regex, '<span class="search-highlight">$1</span>');
+        }
+
+        function getRoleInfo(role) {
+            const roleMap = {
+                'SUPER_ADMIN': { 
+                    label: 'ผู้ดูแลระบบสูงสุด', 
+                    class: 'super-admin', 
+                    icon: 'fas fa-crown',
+                    bgColor: 'bg-red-500'
+                },
+                'SCHOOL_ADMIN': { 
+                    label: 'ผู้บริหารโรงเรียน', 
+                    class: 'school-admin', 
+                    icon: 'fas fa-school',
+                    bgColor: 'bg-blue-500'
+                },
+                'TEACHER': { 
+                    label: 'ครู', 
+                    class: 'teacher', 
+                    icon: 'fas fa-chalkboard-teacher',
+                    bgColor: 'bg-green-500'
+                },
+                'PARENT': { 
+                    label: 'ผู้ปกครอง', 
+                    class: 'parent', 
+                    icon: 'fas fa-users',
+                    bgColor: 'bg-purple-500'
+                }
+            };
+            return roleMap[role] || { 
+                label: 'ผู้ใช้งาน', 
+                class: 'teacher', 
+                icon: 'fas fa-user',
+                bgColor: 'bg-gray-500'
+            };
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'ไม่เคย';
+            
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('th-TH', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch (error) {
+                return 'ไม่ทราบ';
+            }
+        }
+
+        // Modal Functions
+        function showModal(title = 'เพิ่มผู้ใช้ใหม่') {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('user-modal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function hideModal() {
+            document.getElementById('user-modal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            resetForm();
+        }
+
+        function resetForm() {
+            document.getElementById('user-form').reset();
+            document.getElementById('user-id').value = '';
+            document.getElementById('is-active').checked = true;
+            document.getElementById('school').value = 'โรงเรียนบ้านวังด้ง';
+            hideRoleSpecificFields();
+            clearAssignments();
+        }
+
+        function hideRoleSpecificFields() {
+            document.getElementById('teacher-fields').classList.add('hidden');
+            document.getElementById('parent-fields').classList.add('hidden');
+        }
+
+        function showRoleSpecificFields(role) {
+            hideRoleSpecificFields();
+            
+            if (role === 'TEACHER') {
+                document.getElementById('teacher-fields').classList.remove('hidden');
+                populateAvailableClasses();
+            } else if (role === 'PARENT') {
+                document.getElementById('parent-fields').classList.remove('hidden');
+                populateAvailableStudents();
+            }
+        }
+
+        function populateAvailableClasses() {
+            const container = document.getElementById('available-classes');
+            container.innerHTML = availableClasses.map(className => `
+                <label class="flex items-center p-2 border border-gray-300 rounded cursor-pointer hover:bg-gray-50">
+                    <input type="checkbox" name="assigned-classes" value="${className}" class="mr-2">
+                    <span class="text-sm">${className}</span>
+                </label>
+            `).join('');
+        }
+
+        function populateAvailableStudents(searchTerm = '') {
+            const container = document.getElementById('available-students');
+            const filteredStudents = allStudents.filter(student => {
+                if (!searchTerm) return true;
+                return student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                       (student.class && student.class.toLowerCase().includes(searchTerm.toLowerCase()));
+            });
+            
+            container.innerHTML = filteredStudents.map(student => `
+                <div class="student-item">
+                    <label class="flex items-center cursor-pointer flex-1">
+                        <input type="checkbox" name="assigned-students" value="${student.id}" class="mr-3">
+                        <div class="flex-1">
+                            <div class="font-medium text-sm">${student.name}</div>
+                            <div class="text-xs text-gray-500">${student.class || 'ไม่มีข้อมูลชั้น'}</div>
+                        </div>
+                    </label>
+                </div>
+            `).join('');
+        }
+
+        function clearAssignments() {
+            // Clear class assignments
+            document.querySelectorAll('input[name="assigned-classes"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            
+            // Clear student assignments
+            document.querySelectorAll('input[name="assigned-students"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        }
+
+        function getSelectedAssignments() {
+            const selectedClasses = Array.from(document.querySelectorAll('input[name="assigned-classes"]:checked'))
+                .map(checkbox => checkbox.value);
+            
+            const selectedStudents = Array.from(document.querySelectorAll('input[name="assigned-students"]:checked'))
+                .map(checkbox => checkbox.value);
+            
+            return { selectedClasses, selectedStudents };
+        }
+
+        // User Management Functions
+        async function addUser() {
+            showModal('เพิ่มผู้ใช้ใหม่');
+            await loadStudents(); // Load students for assignment
+        }
+
+        async function editUser(userId) {
+            const user = allUsers.find(u => u.id === userId);
+            if (!user) {
+                showError('ไม่พบข้อมูลผู้ใช้');
+                return;
+            }
+            
+            showModal('แก้ไขข้อมูลผู้ใช้');
+            await loadStudents(); // Load students for assignment
+            
+            // Populate form with user data
+            document.getElementById('user-id').value = user.id;
+            document.getElementById('username').value = user.username;
+            document.getElementById('email').value = user.email || '';
+            document.getElementById('full-name').value = user.fullName || '';
+            document.getElementById('role').value = user.role;
+            document.getElementById('school').value = user.school || '';
+            document.getElementById('is-active').checked = user.isActive;
+            
+            // Clear password fields for edit mode
+            document.getElementById('password').value = '';
+            document.getElementById('confirm-password').value = '';
+            document.getElementById('password').removeAttribute('required');
+            document.getElementById('confirm-password').removeAttribute('required');
+            
+            // Show role-specific fields and populate assignments
+            showRoleSpecificFields(user.role);
+            
+            // Set assignments
+            setTimeout(() => {
+                if (user.role === 'TEACHER' && user.assignedClasses) {
+                    user.assignedClasses.forEach(className => {
+                        const checkbox = document.querySelector(`input[name="assigned-classes"][value="${className}"]`);
+                        if (checkbox) checkbox.checked = true;
+                    });
+                }
+                
+                if (user.role === 'PARENT' && user.assignedStudents) {
+                    user.assignedStudents.forEach(studentId => {
+                        const checkbox = document.querySelector(`input[name="assigned-students"][value="${studentId}"]`);
+                        if (checkbox) checkbox.checked = true;
+                    });
+                }
+            }, 100);
+        }
+
+        async function deleteUser(userId, username) {
+            const result = await showConfirm(
+                `คุณต้องการลบผู้ใช้ "${username}" หรือไม่?`,
+                'ยืนยันการลบผู้ใช้'
+            );
+            
+            if (!result.isConfirmed) return;
+            
+            try {
+                showLoading(true, "กำลังลบผู้ใช้...");
+                
+                const response = await makeJSONPRequest('deleteUser', {
+                    userId: userId,
+                    deletedBy: currentUser.id
+                });
+                
+                showLoading(false);
+                
+                if (response && response.success) {
+                    await showSuccess('ลบผู้ใช้เรียบร้อยแล้ว');
+                    loadUsers(); // Reload users list
+                } else {
+                    showError(response ? response.message : 'ไม่สามารถลบผู้ใช้ได้');
+                }
+                
+            } catch (error) {
+                showLoading(false);
+                showError(`ไม่สามารถลบผู้ใช้ได้: ${error.message}`);
+                console.error('Delete user error:', error);
+            }
+        }
+
+        async function saveUser(userData) {
+            try {
+                showLoading(true, userData.id ? "กำลังอัปเดตข้อมูล..." : "กำลังสร้างผู้ใช้...");
+                
+                const action = userData.id ? 'updateUser' : 'createUser';
+                const response = await makeJSONPRequest(action, {
+                    data: JSON.stringify(userData),
+                    [userData.id ? 'updatedBy' : 'createdBy']: currentUser.id
+                });
+                
+                showLoading(false);
+                
+                if (response && response.success) {
+                    await showSuccess(response.message);
+                    hideModal();
+                    loadUsers(); // Reload users list
+                } else {
+                    showError(response ? response.message : 'ไม่สามารถบันทึกข้อมูลได้');
+                }
+                
+            } catch (error) {
+                showLoading(false);
+                showError(`ไม่สามารถบันทึกข้อมูลได้: ${error.message}`);
+                console.error('Save user error:', error);
+            }
+        }
+
+        // Event Handlers
+        function clearFilters() {
+            currentFilter = 'all';
+            searchTerm = '';
+            document.getElementById('search-input').value = '';
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector('.filter-tab[data-filter="all"]').classList.add('active');
+            filterAndDisplayUsers();
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if GAS_WEB_APP_URL is configured
+            if (GAS_WEB_APP_URL === 'YOUR_GAS_WEB_APP_URL_HERE') {
+                showError('กรุณาตั้งค่า URL ของ Google Apps Script', 'ยังไม่ได้ตั้งค่า');
+                return;
+            }
+
+            // Get current user from storage
+            const userData = localStorage.getItem('sdq_user') || sessionStorage.getItem('sdq_user');
+            if (userData) {
+                currentUser = JSON.parse(userData);
+            } else {
+                showError('ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่');
+                return;
+            }
+
+            // Check if user has permission
+            if (currentUser.role !== 'SUPER_ADMIN' && currentUser.role !== 'SCHOOL_ADMIN') {
+                showError('คุณไม่มีสิทธิ์เข้าถึงหน้านี้');
+                return;
+            }
+
+            // Load initial data
+            loadUsers();
+
+            // Event listeners
+            document.getElementById('add-user-btn').addEventListener('click', addUser);
+            document.getElementById('refresh-btn').addEventListener('click', loadUsers);
+            document.getElementById('close-modal-btn').addEventListener('click', hideModal);
+            document.getElementById('cancel-btn').addEventListener('click', hideModal);
+
+            // Search input
+            document.getElementById('search-input').addEventListener('input', function(e) {
+                searchTerm = e.target.value.trim();
+                filterAndDisplayUsers();
+            });
+
+            // Filter tabs
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    currentFilter = this.dataset.filter;
+                    filterAndDisplayUsers();
+                });
+            });
+
+            // Role selection change
+            document.getElementById('role').addEventListener('change', function(e) {
+                showRoleSpecificFields(e.target.value);
+            });
+
+            // Student search for parent assignment
+            document.getElementById('student-search').addEventListener('input', function(e) {
+                populateAvailableStudents(e.target.value);
+            });
+
+            // Form submission
+            document.getElementById('user-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(e.target);
+                const userId = document.getElementById('user-id').value;
+                const password = document.getElementById('password').value;
+                const confirmPassword = document.getElementById('confirm-password').value;
+                
+                // Validate passwords
+                if (password && password !== confirmPassword) {
+                    showError('รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน');
+                    return;
+                }
+                
+                if (!userId && password.length < 6) {
+                    showError('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+                    return;
+                }
+                
+                // Get assignments
+                const assignments = getSelectedAssignments();
+                
+                // Prepare user data
+                const userData = {
+                    id: userId,
+                    username: document.getElementById('username').value.trim(),
+                    email: document.getElementById('email').value.trim(),
+                    fullName: document.getElementById('full-name').value.trim(),
+                    role: document.getElementById('role').value,
+                    school: document.getElementById('school').value.trim(),
+                    isActive: document.getElementById('is-active').checked,
+                    assignedClasses: assignments.selectedClasses,
+                    assignedStudents: assignments.selectedStudents
+                };
+                
+                // Only include password if it's provided
+                if (password) {
+                    userData.password = password;
+                }
+                
+                saveUser(userData);
+            });
+
+            // Close modal when clicking outside
+            document.getElementById('user-modal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    hideModal();
+                }
+            });
+        });
+
+        // Global functions for button clicks
+        window.editUser = editUser;
+        window.deleteUser = deleteUser;
+        window.clearFilters = clearFilters;
+    </script>
+</body>
+</html>
