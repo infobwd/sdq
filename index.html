@@ -2,187 +2,319 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>ระบบประเมินพฤติกรรมนักเรียน SDQ</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Fonts -->
+    <!-- Thai Font -->
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <!-- SheetJS -->
+    <!-- XLSX for Excel handling -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="assets/css/style.css">
+    <!-- Mobile optimized styles -->
+    <style>
+        body { 
+            font-family: 'Sarabun', sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        /* Mobile-first responsive design */
+        .container-mobile {
+            padding: 0.5rem;
+            max-width: 100%;
+        }
+        
+        @media (min-width: 640px) {
+            .container-mobile {
+                padding: 1rem;
+                max-width: 640px;
+                margin: 0 auto;
+            }
+        }
+        
+        @media (min-width: 768px) {
+            .container-mobile {
+                max-width: 768px;
+            }
+        }
+        
+        /* Mobile-friendly radio buttons */
+        .radio-option {
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            border: 2px solid #d1d5db;
+            background-color: #fff;
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+            touch-action: manipulation;
+        }
+        
+        .radio-option:hover, .radio-option:active {
+            border-color: #60a5fa;
+            transform: scale(1.1);
+        }
+        
+        .radio-option.selected {
+            background-color: #3b82f6;
+            border-color: #2563eb;
+        }
+        
+        .radio-option.selected::after {
+            content: '✔';
+            color: white;
+            font-size: 0.875rem;
+            font-weight: bold;
+        }
+        
+        /* Mobile-optimized card design */
+        .card-mobile {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        @media (min-width: 768px) {
+            .card-mobile {
+                padding: 2rem;
+            }
+        }
+        
+        /* Category headers with better mobile visibility */
+        .category-header {
+            font-weight: 600;
+            padding: 0.75rem 1rem;
+            margin: 1rem 0 0.5rem 0;
+            border-radius: 0.5rem;
+            color: #fff;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+        
+        .category-emotional { background: linear-gradient(135deg, #FBBF24, #F59E0B); }
+        .category-conduct { background: linear-gradient(135deg, #F87171, #EF4444); }
+        .category-hyperactivity { background: linear-gradient(135deg, #6EE7B7, #10B981); }
+        .category-peer { background: linear-gradient(135deg, #93C5FD, #3B82F6); }
+        .category-prosocial { background: linear-gradient(135deg, #D8B4FE, #8B5CF6); }
+        
+        /* Mobile-optimized table */
+        .mobile-table {
+            font-size: 0.85rem;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .mobile-table td, .mobile-table th {
+            padding: 0.5rem;
+            vertical-align: top;
+        }
+        
+        /* Responsive buttons */
+        .btn-mobile {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            touch-action: manipulation;
+            font-size: 0.9rem;
+        }
+        
+        /* Tab navigation optimized for mobile */
+        .tab-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        
+        .tab-container::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .tab-btn {
+            white-space: nowrap;
+            min-width: max-content;
+            padding: 0.75rem 1rem;
+            font-size: 0.85rem;
+        }
+        
+        /* Loading overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #fff;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Chart container mobile optimization */
+        .chart-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
+            margin: 1rem 0;
+        }
+        
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 300px;
+            }
+        }
+        
+        /* Print styles remain the same as original */
+        @media print {
+            body { background: white !important; }
+            .no-print { display: none !important; }
+            .card-mobile { box-shadow: none !important; }
+        }
+    </style>
 </head>
-<body class="font-sarabun bg-gray-50">
+<body class="min-h-screen">
     <!-- Loading Overlay -->
-    <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-75 z-50 hidden">
-        <div class="flex flex-col items-center justify-center h-full text-white">
-            <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-white mb-4"></div>
-            <p id="loading-text" class="text-lg font-medium">กำลังประมวลผล...</p>
-        </div>
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <div id="loading-text">กำลังประมวลผล...</div>
     </div>
 
     <!-- Header -->
-    <header class="bg-gradient-to-r from-blue-600 to-purple-700 text-white shadow-lg sticky top-0 z-40">
-        <div class="container mx-auto px-4 py-4">
-            <div class="flex items-center justify-center">
-                <img src="https://raw.githubusercontent.com/infobwd/sdq/refs/heads/main/assets/logoWD.png" 
-                     class="h-12 md:h-16 mr-3" alt="โลโก้โรงเรียน" />
-                <div class="text-center">
-                    <h1 class="text-lg md:text-2xl font-bold">ระบบประเมินพฤติกรรมนักเรียน</h1>
-                    <p class="text-xs md:text-sm text-blue-100 mt-1">แบบประเมินจุดแข็งและจุดอ่อน (SDQ)</p>
-                </div>
+    <header class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg no-print">
+        <div class="container-mobile py-4">
+            <div class="text-center">
+                <img src="https://img2.pic.in.th/pic/bf40fa04101a0ceceabc02eed1d0cc00.png" 
+                     class="h-16 mx-auto mb-2" alt="โลโก้โรงเรียน" />
+                <h1 class="text-xl md:text-2xl font-bold">ระบบประเมินพฤติกรรมนักเรียน</h1>
+                <p class="text-sm text-indigo-100 mt-1">แบบประเมินจุดแข็งและจุดอ่อน (SDQ)</p>
             </div>
         </div>
     </header>
 
-    <!-- Mobile Navigation -->
-    <nav class="bg-white border-b border-gray-200 md:hidden">
-        <div class="container mx-auto px-4">
-            <div class="flex justify-center">
-                <select id="mobile-nav" class="w-full max-w-sm p-3 text-sm border-0 focus:ring-2 focus:ring-blue-500">
-                    <option value="home">หน้าหลัก</option>
-                    <option value="student">นักเรียน</option>
-                    <option value="teacher">ครู</option>
-                    <option value="parent">ผู้ปกครอง</option>
-                    <option value="results">ผลรายบุคคล</option>
-                    <option value="summary">สรุปภาพรวม</option>
-                </select>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Desktop Navigation -->
-    <nav class="bg-white border-b border-gray-200 hidden md:block">
-        <div class="container mx-auto px-4">
-            <div class="flex justify-center space-x-1">
-                <button id="tab-home" class="tab-btn px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-600 border-b-2 border-transparent">
-                    หน้าหลัก
-                </button>
-                <button id="tab-student" class="tab-btn px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-600 border-b-2 border-transparent">
-                    นักเรียน
-                </button>
-                <button id="tab-teacher" class="tab-btn px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-600 border-b-2 border-transparent">
-                    ครู
-                </button>
-                <button id="tab-parent" class="tab-btn px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-600 border-b-2 border-transparent">
-                    ผู้ปกครอง
-                </button>
-                <button id="tab-results" class="tab-btn px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-600 border-b-2 border-transparent">
-                    ผลรายบุคคล
-                </button>
-                <button id="tab-summary" class="tab-btn px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-600 border-b-2 border-transparent">
-                    สรุปภาพรวม
-                </button>
-            </div>
-        </div>
-    </nav>
-
     <!-- Main Content -->
-    <main class="container mx-auto px-4 py-6 min-h-screen">
+    <main class="container-mobile py-4 flex-grow">
+        <!-- Tab Navigation -->
+        <div class="tab-container bg-white/90 backdrop-blur-sm rounded-lg p-1 mb-4 no-print">
+            <div class="flex space-x-1">
+                <button id="tab-home" class="tab-btn text-gray-600 hover:text-indigo-600 rounded-md transition-colors">
+                    🏠 หน้าหลัก
+                </button>
+                <button id="tab-student" class="tab-btn text-gray-600 hover:text-indigo-600 rounded-md transition-colors">
+                    👨‍🎓 นักเรียน
+                </button>
+                <button id="tab-teacher" class="tab-btn text-gray-600 hover:text-indigo-600 rounded-md transition-colors">
+                    👩‍🏫 ครู
+                </button>
+                <button id="tab-parent" class="tab-btn text-gray-600 hover:text-indigo-600 rounded-md transition-colors">
+                    👨‍👩‍👧‍👦 ผู้ปกครอง
+                </button>
+                <button id="tab-results" class="tab-btn text-gray-600 hover:text-indigo-600 rounded-md transition-colors">
+                    📊 ผลรายบุคคล
+                </button>
+                <button id="tab-summary" class="tab-btn text-gray-600 hover:text-indigo-600 rounded-md transition-colors">
+                    📈 สรุปภาพรวม
+                </button>
+            </div>
+        </div>
+
         <!-- Home Page -->
         <div id="page-home" class="page">
-            <div class="max-w-4xl mx-auto">
-                <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
-                    <h2 class="text-xl md:text-2xl font-bold text-center mb-6 text-gray-800">
-                        ยินดีต้อนรับ! สู่ระบบประเมิน SDQ โรงเรียนบ้านวังด้ง
-                    </h2>
-                    
-                    <!-- About Section -->
-                    <div class="mb-6">
-                        <h3 class="text-lg font-semibold mb-3 text-blue-600">เกี่ยวกับแบบประเมิน SDQ</h3>
-                        <p class="text-gray-700 mb-4 leading-relaxed">
-                            แบบประเมินจุดแข็งและจุดอ่อน (Strengths and Difficulties Questionnaire - SDQ) 
-                            เป็นเครื่องมือมาตรฐานที่ใช้สำหรับคัดกรองปัญหาด้านพฤติกรรม อารมณ์ และทักษะทางสังคม
-                            ของเด็กและวัยรุ่น (อายุ 4-17 ปี) ประกอบด้วยข้อคำถาม 25 ข้อ ครอบคลุม 5 ด้านสำคัญ
+            <div class="card-mobile">
+                <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">
+                    ยินดีต้อนรับสู่ระบบประเมิน SDQ
+                </h2>
+                
+                <div class="space-y-6">
+                    <!-- About SDQ -->
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3 text-indigo-700">🔍 เกี่ยวกับแบบประเมิน SDQ</h3>
+                        <p class="text-sm text-gray-700 leading-relaxed mb-3">
+                            แบบประเมินจุดแข็งและจุดอ่อน (SDQ) เป็นเครื่องมือมาตรฐานสำหรับคัดกรองปัญหาพฤติกรรม 
+                            อารมณ์ และทักษะทางสังคมของเด็กและวัยรุ่น (อายุ 4-17 ปี)
                         </p>
                         
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div class="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-400">
-                                <h4 class="font-semibold text-yellow-800">ด้านอารมณ์</h4>
-                                <p class="text-sm text-yellow-700">Emotional Symptoms</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                            <div class="bg-yellow-50 p-2 rounded-md border-l-4 border-yellow-400">
+                                <strong class="text-yellow-700">ด้านอารมณ์</strong>
                             </div>
-                            <div class="bg-red-50 p-4 rounded-lg border-l-4 border-red-400">
-                                <h4 class="font-semibold text-red-800">ด้านความประพฤติ</h4>
-                                <p class="text-sm text-red-700">Conduct Problems</p>
+                            <div class="bg-red-50 p-2 rounded-md border-l-4 border-red-400">
+                                <strong class="text-red-700">ด้านความประพฤติ</strong>
                             </div>
-                            <div class="bg-green-50 p-4 rounded-lg border-l-4 border-green-400">
-                                <h4 class="font-semibold text-green-800">ด้านพฤติกรรมอยู่ไม่นิ่ง/สมาธิสั้น</h4>
-                                <p class="text-sm text-green-700">Hyperactivity/Inattention</p>
+                            <div class="bg-green-50 p-2 rounded-md border-l-4 border-green-400">
+                                <strong class="text-green-700">ด้านสมาธิสั้น/อยู่ไม่นิ่ง</strong>
                             </div>
-                            <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-400">
-                                <h4 class="font-semibold text-blue-800">ด้านความสัมพันธ์กับเพื่อน</h4>
-                                <p class="text-sm text-blue-700">Peer Relationship Problems</p>
+                            <div class="bg-blue-50 p-2 rounded-md border-l-4 border-blue-400">
+                                <strong class="text-blue-700">ด้านความสัมพันธ์กับเพื่อน</strong>
                             </div>
-                            <div class="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-400 md:col-span-2">
-                                <h4 class="font-semibold text-purple-800">ด้านสัมพันธภาพทางสังคม (จุดแข็ง)</h4>
-                                <p class="text-sm text-purple-700">Prosocial Behaviour</p>
+                            <div class="bg-purple-50 p-2 rounded-md border-l-4 border-purple-400 md:col-span-2">
+                                <strong class="text-purple-700">ด้านสัมพันธภาพทางสังคม (จุดแข็ง)</strong>
                             </div>
                         </div>
                     </div>
 
-                    <!-- How to Use -->
-                    <div class="mb-6">
-                        <h3 class="text-lg font-semibold mb-3 text-blue-600">วิธีใช้งานระบบ</h3>
-                        <div class="space-y-3">
-                            <div class="flex items-start space-x-3">
-                                <span class="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">1</span>
-                                <p class="text-gray-700">เลือกประเภทผู้ประเมินจากเมนู (นักเรียน, ครู, หรือผู้ปกครอง)</p>
-                            </div>
-                            <div class="flex items-start space-x-3">
-                                <span class="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">2</span>
-                                <p class="text-gray-700">เลือกชื่อนักเรียนจากรายการ และกรอกข้อมูลผู้ประเมิน</p>
-                            </div>
-                            <div class="flex items-start space-x-3">
-                                <span class="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">3</span>
-                                <p class="text-gray-700">ตอบคำถามทั้ง 25 ข้อตามความเป็นจริงในช่วง 6 เดือนที่ผ่านมา</p>
-                            </div>
-                            <div class="flex items-start space-x-3">
-                                <span class="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">4</span>
-                                <p class="text-gray-700">กดปุ่ม "บันทึกการประเมิน" เมื่อตอบครบถ้วน</p>
-                            </div>
-                            <div class="flex items-start space-x-3">
-                                <span class="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">5</span>
-                                <p class="text-gray-700">ดูผลการประเมินในหน้า "ผลรายบุคคล" หรือ "สรุปภาพรวม"</p>
-                            </div>
+                    <!-- Quick Start -->
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3 text-indigo-700">🚀 เริ่มใช้งานด่วน</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <button id="quick-student" class="btn-mobile bg-blue-500 hover:bg-blue-600 text-white text-center">
+                                👨‍🎓 ประเมินตนเอง
+                            </button>
+                            <button id="quick-teacher" class="btn-mobile bg-green-500 hover:bg-green-600 text-white text-center">
+                                👩‍🏫 ครูประเมิน
+                            </button>
+                            <button id="quick-parent" class="btn-mobile bg-purple-500 hover:bg-purple-600 text-white text-center">
+                                👨‍👩‍👧‍👦 ผู้ปกครองประเมิน
+                            </button>
                         </div>
                     </div>
 
                     <!-- Student Management -->
-                    <div class="bg-gray-50 rounded-lg p-6 mb-6">
-                        <h3 class="text-lg font-semibold mb-3 text-gray-800">จัดการข้อมูลนักเรียน</h3>
-                        <p class="text-gray-600 mb-4">
-                            คุณสามารถเพิ่มนักเรียนเข้าระบบได้ 2 วิธี: นำเข้าจากไฟล์ Excel สำหรับหลายคน หรือเพิ่มทีละคน
-                        </p>
-                        <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3 text-indigo-700">👥 จัดการข้อมูลนักเรียน</h3>
+                        <div class="flex flex-col sm:flex-row gap-3">
                             <input type="file" id="excel-file-input" class="hidden" accept=".xlsx, .xls">
-                            <label for="excel-file-input" 
-                                   class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg cursor-pointer transition-colors duration-200 text-center">
-                                📤 Import จาก Excel
+                            <label for="excel-file-input" class="btn-mobile bg-emerald-500 hover:bg-emerald-600 text-white cursor-pointer text-center">
+                                📤 นำเข้าจาก Excel
                             </label>
-                            <button id="manual-add-student-btn" 
-                                    class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors duration-200">
-                                ＋ เพิ่มรายบุคคล
+                            <button id="manual-add-student-btn" class="btn-mobile bg-indigo-500 hover:bg-indigo-600 text-white">
+                                ➕ เพิ่มรายบุคคล
                             </button>
                         </div>
-                    </div>
-                    
-                    <!-- Quick Start -->
-                    <div class="text-center">
-                        <button id="start-assessment" 
-                                class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg">
-                            เริ่มทำแบบประเมิน (นักเรียน)
-                        </button>
                     </div>
                 </div>
             </div>
@@ -190,417 +322,369 @@
 
         <!-- Student Assessment Page -->
         <div id="page-student" class="page hidden">
-            <div class="max-w-6xl mx-auto">
-                <div class="bg-white rounded-xl shadow-lg p-4 md:p-6">
-                    <h2 class="text-xl md:text-2xl font-bold text-center mb-6 text-gray-800">
-                        นักเรียนประเมินตนเอง
-                    </h2>
-                    
-                    <form id="student-assessment-form">
-                        <!-- Student Selection -->
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">กรองตามชั้นเรียน</label>
-                                <select id="student-class-filter-s" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="all">-- ทุกชั้นเรียน --</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อ-นามสกุล นักเรียน *</label>
-                                <select id="student-name-s" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-                                    <option value="">-- กรุณาเลือกชื่อนักเรียน --</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">ชั้นเรียน</label>
-                                <input type="text" id="student-class-s" class="w-full p-3 border border-gray-300 rounded-lg bg-gray-100" readonly>
-                            </div>
+            <div class="card-mobile">
+                <h2 class="text-xl font-bold text-center mb-6 text-gray-800">👨‍🎓 นักเรียนประเมินตนเอง</h2>
+                
+                <form id="student-assessment-form">
+                    <!-- Student Selection -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">กรองตามชั้นเรียน</label>
+                            <select id="student-class-filter-s" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="all">-- ทุกชั้นเรียน --</option>
+                            </select>
                         </div>
-
-                        <!-- Instructions -->
-                        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6 rounded-r-lg">
-                            <h3 class="text-lg font-semibold mb-2 text-blue-800">คำชี้แจง</h3>
-                            <p class="text-blue-700">กรุณาเลือกคำตอบที่ตรงกับตัวนักเรียนมากที่สุด ในช่วง 6 เดือนที่ผ่านมา</p>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อ-นามสกุล นักเรียน</label>
+                            <select id="student-name-s" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+                                <option value="">-- กรุณาเลือกชื่อนักเรียน --</option>
+                            </select>
                         </div>
-
-                        <!-- Questions Container -->
-                        <div id="questions-container-student"></div>
-
-                        <!-- Action Buttons -->
-                        <div class="flex flex-col sm:flex-row justify-center gap-3 mt-6 no-print">
-                            <button type="button" class="print-form-btn bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg transition-colors duration-200">
-                                🖨️ พิมพ์แบบฟอร์ม
-                            </button>
-                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors duration-200">
-                                บันทึกการประเมิน
-                            </button>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">ชั้นเรียน</label>
+                            <input type="text" id="student-class-s" class="w-full p-3 bg-gray-100 border border-gray-300 rounded-lg" readonly>
                         </div>
-                    </form>
-                </div>
+                    </div>
+
+                    <!-- Instructions -->
+                    <div class="bg-indigo-50 p-4 rounded-lg mb-6 border border-indigo-200">
+                        <h3 class="font-semibold text-indigo-800 mb-2">📋 คำชี้แจง</h3>
+                        <p class="text-sm text-indigo-700">
+                            กรุณาเลือกคำตอบที่ตรงกับตัวนักเรียนมากที่สุด ในช่วง 6 เดือนที่ผ่านมา
+                        </p>
+                    </div>
+
+                    <!-- Questions Container -->
+                    <div id="questions-container-student" class="space-y-4 mb-6">
+                        <!-- Questions will be dynamically generated here -->
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex flex-col sm:flex-row gap-3 justify-center no-print">
+                        <button type="button" class="btn-mobile bg-gray-500 hover:bg-gray-600 text-white print-form-btn">
+                            🖨️ พิมพ์แบบฟอร์ม
+                        </button>
+                        <button type="submit" class="btn-mobile bg-indigo-600 hover:bg-indigo-700 text-white">
+                            💾 บันทึกการประเมิน
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
 
         <!-- Teacher Assessment Page -->
         <div id="page-teacher" class="page hidden">
-            <div class="max-w-6xl mx-auto">
-                <div class="bg-white rounded-xl shadow-lg p-4 md:p-6">
-                    <h2 class="text-xl md:text-2xl font-bold text-center mb-6 text-gray-800">
-                        ครูประเมินนักเรียน
-                    </h2>
-                    
-                    <form id="teacher-assessment-form">
-                        <!-- Teacher and Student Selection -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อครูผู้ประเมิน *</label>
-                                <input type="text" id="teacher-name-t" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                                       placeholder="เช่น ครูสมศรี ใจดี" required>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">กรองตามชั้นเรียน</label>
-                                <select id="teacher-class-filter-t" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="all">-- ทุกชั้นเรียน --</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อนักเรียนที่ประเมิน *</label>
-                                <select id="teacher-student-name-t" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-                                    <option value="">-- กรุณาเลือกชื่อนักเรียน --</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">ชั้นเรียน</label>
-                                <input type="text" id="teacher-student-class-t" class="w-full p-3 border border-gray-300 rounded-lg bg-gray-100" readonly>
-                            </div>
+            <div class="card-mobile">
+                <h2 class="text-xl font-bold text-center mb-6 text-gray-800">👩‍🏫 ครูประเมินนักเรียน</h2>
+                
+                <form id="teacher-assessment-form">
+                    <!-- Teacher & Student Selection -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อครูผู้ประเมิน</label>
+                            <input type="text" id="teacher-name-t" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="เช่น ครูสมศรี ใจดี" required>
                         </div>
-
-                        <!-- Instructions -->
-                        <div class="bg-green-50 border-l-4 border-green-400 p-4 mb-6 rounded-r-lg">
-                            <h3 class="text-lg font-semibold mb-2 text-green-800">คำชี้แจง</h3>
-                            <p class="text-green-700">กรุณาเลือกคำตอบที่ตรงกับพฤติกรรมของนักเรียนมากที่สุด ในช่วง 6 เดือนที่ผ่านมา</p>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">กรองตามชั้นเรียน</label>
+                            <select id="teacher-class-filter-t" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="all">-- ทุกชั้นเรียน --</option>
+                            </select>
                         </div>
-
-                        <!-- Questions Container -->
-                        <div id="questions-container-teacher"></div>
-
-                        <!-- Action Buttons -->
-                        <div class="flex flex-col sm:flex-row justify-center gap-3 mt-6 no-print">
-                            <button type="button" class="print-form-btn bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg transition-colors duration-200">
-                                🖨️ พิมพ์แบบฟอร์ม
-                            </button>
-                            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors duration-200">
-                                บันทึกการประเมิน
-                            </button>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อนักเรียนที่ประเมิน</label>
+                            <select id="teacher-student-name-t" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+                                <option value="">-- กรุณาเลือกชื่อนักเรียน --</option>
+                            </select>
                         </div>
-                    </form>
-                </div>
+                    </div>
+
+                    <!-- Instructions -->
+                    <div class="bg-green-50 p-4 rounded-lg mb-6 border border-green-200">
+                        <h3 class="font-semibold text-green-800 mb-2">📋 คำชี้แจง</h3>
+                        <p class="text-sm text-green-700">
+                            กรุณาเลือกคำตอบที่ตรงกับพฤติกรรมของนักเรียนมากที่สุด ในช่วง 6 เดือนที่ผ่านมา
+                        </p>
+                    </div>
+
+                    <!-- Questions Container -->
+                    <div id="questions-container-teacher" class="space-y-4 mb-6">
+                        <!-- Questions will be dynamically generated here -->
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex flex-col sm:flex-row gap-3 justify-center no-print">
+                        <button type="button" class="btn-mobile bg-gray-500 hover:bg-gray-600 text-white print-form-btn">
+                            🖨️ พิมพ์แบบฟอร์ม
+                        </button>
+                        <button type="submit" class="btn-mobile bg-green-600 hover:bg-green-700 text-white">
+                            💾 บันทึกการประเมิน
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
 
         <!-- Parent Assessment Page -->
         <div id="page-parent" class="page hidden">
-            <div class="max-w-6xl mx-auto">
-                <div class="bg-white rounded-xl shadow-lg p-4 md:p-6">
-                    <h2 class="text-xl md:text-2xl font-bold text-center mb-6 text-gray-800">
-                        ผู้ปกครองประเมินนักเรียน
-                    </h2>
-                    
-                    <form id="parent-assessment-form">
-                        <!-- Parent and Student Information -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อผู้ปกครอง *</label>
-                                <input type="text" id="parent-name-p" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                                       placeholder="เช่น นายอดิศร รักบุตร" required>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">กรองตามชั้นเรียน</label>
-                                <select id="parent-class-filter-p" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="all">-- ทุกชั้นเรียน --</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อนักเรียน (บุตรหลาน) *</label>
-                                <select id="parent-student-name-p" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-                                    <option value="">-- กรุณาเลือกชื่อนักเรียน --</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">ความสัมพันธ์กับนักเรียน *</label>
-                                <select id="parent-relation-p" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-                                    <option value="">-- เลือกความสัมพันธ์ --</option>
-                                    <option value="บิดา">บิดา</option>
-                                    <option value="มารดา">มารดา</option>
-                                    <option value="ปู่/ตา">ปู่/ตา</option>
-                                    <option value="ย่า/ยาย">ย่า/ยาย</option>
-                                    <option value="ลุง/ป้า/น้า/อา">ลุง/ป้า/น้า/อา</option>
-                                    <option value="ผู้ปกครองตามกฎหมาย">ผู้ปกครองตามกฎหมาย</option>
-                                    <option value="อื่นๆ">อื่นๆ</option>
-                                </select>
-                            </div>
+            <div class="card-mobile">
+                <h2 class="text-xl font-bold text-center mb-6 text-gray-800">👨‍👩‍👧‍👦 ผู้ปกครองประเมินนักเรียน</h2>
+                
+                <form id="parent-assessment-form">
+                    <!-- Parent & Student Info -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อผู้ปกครอง</label>
+                            <input type="text" id="parent-name-p" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="เช่น นายอดิศร รักบุตร" required>
                         </div>
-
-                        <!-- Instructions -->
-                        <div class="bg-purple-50 border-l-4 border-purple-400 p-4 mb-6 rounded-r-lg">
-                            <h3 class="text-lg font-semibold mb-2 text-purple-800">คำชี้แจง</h3>
-                            <p class="text-purple-700">กรุณาเลือกคำตอบที่ตรงกับพฤติกรรมของนักเรียนมากที่สุด ในช่วง 6 เดือนที่ผ่านมา</p>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">ความสัมพันธ์กับนักเรียน</label>
+                            <select id="parent-relation-p" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+                                <option value="">-- เลือกความสัมพันธ์ --</option>
+                                <option value="บิดา">บิดา</option>
+                                <option value="มารดา">มารดา</option>
+                                <option value="ปู่/ตา">ปู่/ตา</option>
+                                <option value="ย่า/ยาย">ย่า/ยาย</option>
+                                <option value="ลุง/ป้า/น้า/อา">ลุง/ป้า/น้า/อา</option>
+                                <option value="ผู้ปกครองตามกฎหมาย">ผู้ปกครองตามกฎหมาย</option>
+                                <option value="อื่นๆ">อื่นๆ</option>
+                            </select>
                         </div>
-
-                        <!-- Questions Container -->
-                        <div id="questions-container-parent"></div>
-
-                        <!-- Action Buttons -->
-                        <div class="flex flex-col sm:flex-row justify-center gap-3 mt-6 no-print">
-                            <button type="button" class="print-form-btn bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg transition-colors duration-200">
-                                🖨️ พิมพ์แบบฟอร์ม
-                            </button>
-                            <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors duration-200">
-                                บันทึกการประเมิน
-                            </button>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">กรองตามชั้นเรียน</label>
+                            <select id="parent-class-filter-p" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="all">-- ทุกชั้นเรียน --</option>
+                            </select>
                         </div>
-                    </form>
-                </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อนักเรียน (บุตรหลาน)</label>
+                            <select id="parent-student-name-p" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+                                <option value="">-- กรุณาเลือกชื่อนักเรียน --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Instructions -->
+                    <div class="bg-purple-50 p-4 rounded-lg mb-6 border border-purple-200">
+                        <h3 class="font-semibold text-purple-800 mb-2">📋 คำชี้แจง</h3>
+                        <p class="text-sm text-purple-700">
+                            กรุณาเลือกคำตอบที่ตรงกับพฤติกรรมของนักเรียนมากที่สุด ในช่วง 6 เดือนที่ผ่านมา
+                        </p>
+                    </div>
+
+                    <!-- Questions Container -->
+                    <div id="questions-container-parent" class="space-y-4 mb-6">
+                        <!-- Questions will be dynamically generated here -->
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex flex-col sm:flex-row gap-3 justify-center no-print">
+                        <button type="button" class="btn-mobile bg-gray-500 hover:bg-gray-600 text-white print-form-btn">
+                            🖨️ พิมพ์แบบฟอร์ม
+                        </button>
+                        <button type="submit" class="btn-mobile bg-purple-600 hover:bg-purple-700 text-white">
+                            💾 บันทึกการประเมิน
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
 
         <!-- Results Page -->
         <div id="page-results" class="page hidden">
-            <div class="max-w-6xl mx-auto">
-                <div class="bg-white rounded-xl shadow-lg p-4 md:p-6">
-                    <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
-                        <h2 class="text-xl md:text-2xl font-bold mb-3 sm:mb-0 text-gray-800">ผลการประเมินรายบุคคล</h2>
-                        <button id="print-results" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition-colors duration-200 no-print">
-                            🖨️ พิมพ์ผลการประเมิน
-                        </button>
+            <div class="card-mobile">
+                <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-3 sm:mb-0">📊 ผลการประเมินรายบุคคล</h2>
+                    <button id="print-results" class="btn-mobile bg-emerald-500 hover:bg-emerald-600 text-white no-print">
+                        🖨️ พิมพ์ผลการประเมิน
+                    </button>
+                </div>
+
+                <!-- Student & Type Selection -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 no-print">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">เลือกนักเรียน</label>
+                        <select id="result-student-name" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="">-- กรุณาเลือกชื่อนักเรียน --</option>
+                        </select>
                     </div>
-
-                    <!-- Filters -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 no-print">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">เลือกนักเรียน</label>
-                            <select id="result-student-name" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="">-- กรุณาเลือกชื่อนักเรียน --</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">ประเภทการประเมิน</label>
-                            <select id="result-evaluator-type" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="all">ทุกประเภท (แสดงผลล่าสุด)</option>
-                                <option value="student">นักเรียนประเมินตนเอง</option>
-                                <option value="teacher">ครูประเมิน</option>
-                                <option value="parent">ผู้ปกครองประเมิน</option>
-                            </select>
-                        </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">ประเภทการประเมิน</label>
+                        <select id="result-evaluator-type" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="all">ทุกประเภท (แสดงผลล่าสุด)</option>
+                            <option value="student">นักเรียนประเมินตนเอง</option>
+                            <option value="teacher">ครูประเมิน</option>
+                            <option value="parent">ผู้ปกครองประเมิน</option>
+                        </select>
                     </div>
+                </div>
 
-                    <!-- Results Content -->
-                    <div id="individual-result-content" class="hidden">
-                        <!-- Student Info -->
-                        <div class="bg-gray-50 rounded-lg p-4 mb-6">
-                            <h3 class="text-lg font-semibold mb-3 text-gray-800">ข้อมูลนักเรียนและการประเมิน</h3>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                                <div>
-                                    <span class="font-medium text-gray-600">ชื่อ-นามสกุล:</span>
-                                    <span id="result-info-name" class="ml-2 text-gray-800">-</span>
-                                </div>
-                                <div>
-                                    <span class="font-medium text-gray-600">ผู้ประเมิน:</span>
-                                    <span id="result-info-evaluator-type" class="ml-2 text-gray-800">-</span>
-                                </div>
-                                <div>
-                                    <span class="font-medium text-gray-600">ชั้น:</span>
-                                    <span id="result-info-class" class="ml-2 text-gray-800">-</span>
-                                </div>
-                                <div>
-                                    <span class="font-medium text-gray-600">วันที่ประเมิน:</span>
-                                    <span id="result-info-date" class="ml-2 text-gray-800">-</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Scores Table and Chart -->
-                        <div class="mb-6">
-                            <h3 class="text-lg font-semibold mb-4 text-gray-800">ผลการประเมินรายด้าน</h3>
-                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                <div class="overflow-x-auto">
-                                    <table class="w-full border-collapse border border-gray-300 text-sm">
-                                        <thead>
-                                            <tr class="bg-gray-100">
-                                                <th class="border border-gray-300 p-3 text-left font-medium">ด้านการประเมิน</th>
-                                                <th class="border border-gray-300 p-3 text-center font-medium">คะแนน</th>
-                                                <th class="border border-gray-300 p-3 text-center font-medium">การแปลผล</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="result-table-body">
-                                            <tr><td colspan="3" class="text-center p-4">ไม่มีข้อมูล</td></tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <div class="h-64 md:h-80">
-                                    <canvas id="result-chart"></canvas>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Interpretation Summary -->
-                        <div class="bg-blue-50 rounded-lg p-4 mb-6">
-                            <h3 class="text-lg font-semibold mb-3 text-blue-800">สรุปการแปลผลและข้อเสนอแนะ</h3>
-                            <div id="result-interpretation-summary" class="text-blue-700 leading-relaxed">
-                                <p>ไม่มีข้อมูลการแปลผล</p>
-                            </div>
-                        </div>
-
-                        <!-- Answers Summary -->
-                        <div class="mb-6">
-                            <h3 class="text-lg font-semibold mb-3 text-gray-800">สรุปคำตอบที่ประเมิน</h3>
-                            <div class="overflow-x-auto border border-gray-300 rounded-lg">
-                                <table class="w-full text-sm">
-                                    <thead>
-                                        <tr class="bg-gray-100">
-                                            <th class="border-b border-gray-300 p-3 text-left font-medium">ข้อที่</th>
-                                            <th class="border-b border-gray-300 p-3 text-left font-medium">รายการพฤติกรรม</th>
-                                            <th class="border-b border-gray-300 p-3 text-left font-medium">คำตอบที่เลือก</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="result-answers-body">
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <!-- Additional Recommendations -->
-                        <div class="mt-6">
-                            <h3 class="text-lg font-semibold mb-3 text-gray-800">ข้อเสนอแนะเพิ่มเติม</h3>
-                            <textarea id="individual-recommendations" rows="4" 
-                                      class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 print-textarea" 
-                                      placeholder="ระบุแนวทางการช่วยเหลือเพิ่มเติม, การส่งต่อ, หรือข้อสังเกตอื่นๆ..."></textarea>
-                        </div>
-
-                        <!-- Print Date -->
-                        <div class="mt-6 text-center text-xs text-gray-500">
-                            <p>เอกสารนี้สร้างจากระบบประเมิน SDQ</p>
-                            <p>วันที่พิมพ์: <span id="print-date"></span></p>
+                <!-- Results Content -->
+                <div id="individual-result-content" class="hidden">
+                    <!-- Student Info -->
+                    <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                        <h3 class="font-semibold text-gray-800 mb-3">ℹ️ ข้อมูลการประเมิน</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                            <p><strong>ชื่อ-นามสกุล:</strong> <span id="result-info-name">-</span></p>
+                            <p><strong>ชั้น:</strong> <span id="result-info-class">-</span></p>
+                            <p><strong>ผู้ประเมิน:</strong> <span id="result-info-evaluator-type">-</span></p>
+                            <p><strong>วันที่ประเมิน:</strong> <span id="result-info-date">-</span></p>
                         </div>
                     </div>
 
-                    <!-- Placeholder -->
-                    <div id="individual-result-placeholder" class="text-center py-16 text-gray-500">
-                        <div class="text-6xl mb-4">📋</div>
-                        <p class="text-lg">โปรดเลือกนักเรียนเพื่อดูผลลัพธ์</p>
+                    <!-- Scores Table and Chart -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                        <div class="overflow-x-auto">
+                            <table class="w-full mobile-table border border-gray-300 rounded-lg">
+                                <thead class="bg-indigo-600 text-white">
+                                    <tr>
+                                        <th class="text-left">ด้านการประเมิน</th>
+                                        <th class="text-center">คะแนน</th>
+                                        <th class="text-center">การแปลผล</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="result-table-body">
+                                    <!-- Results will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="result-chart"></canvas>
+                        </div>
                     </div>
+
+                    <!-- Interpretation Summary -->
+                    <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-200 mb-6">
+                        <h3 class="font-semibold text-indigo-800 mb-2">📋 สรุปการแปลผล</h3>
+                        <div id="result-interpretation-summary" class="text-sm text-indigo-700">
+                            <!-- Interpretation will be populated here -->
+                        </div>
+                    </div>
+
+                    <!-- Detailed Answers -->
+                    <div class="mb-6">
+                        <h3 class="font-semibold text-gray-800 mb-3">📝 สรุปคำตอบที่ประเมิน</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full mobile-table border border-gray-300 rounded-lg">
+                                <thead class="bg-gray-100">
+                                    <tr>
+                                        <th class="text-left">ข้อที่</th>
+                                        <th class="text-left">รายการพฤติกรรม</th>
+                                        <th class="text-left">คำตอบ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="result-answers-body">
+                                    <!-- Answers will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Additional Recommendations -->
+                    <div>
+                        <h3 class="font-semibold text-gray-800 mb-2">💡 ข้อเสนอแนะเพิ่มเติม</h3>
+                        <textarea id="individual-recommendations" rows="4" 
+                                  class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" 
+                                  placeholder="ระบุแนวทางการช่วยเหลือเพิ่มเติม, การส่งต่อ, หรือข้อสังเกตอื่นๆ..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Placeholder -->
+                <div id="individual-result-placeholder" class="text-center py-10 text-gray-500">
+                    <div class="text-6xl mb-4">📊</div>
+                    <p>โปรดเลือกนักเรียนเพื่อดูผลการประเมิน</p>
                 </div>
             </div>
         </div>
 
         <!-- Summary Page -->
         <div id="page-summary" class="page hidden">
-            <div class="max-w-6xl mx-auto">
-                <div class="bg-white rounded-xl shadow-lg p-4 md:p-6">
-                    <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
-                        <h2 class="text-xl md:text-2xl font-bold mb-3 sm:mb-0 text-gray-800">สรุปผลการประเมินภาพรวม</h2>
-                        <button id="print-summary" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition-colors duration-200 no-print">
-                            🖨️ พิมพ์สรุปผล
-                        </button>
+            <div class="card-mobile">
+                <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-3 sm:mb-0">📈 สรุปผลการประเมินภาพรวม</h2>
+                    <button id="print-summary" class="btn-mobile bg-emerald-500 hover:bg-emerald-600 text-white no-print">
+                        🖨️ พิมพ์สรุปผล
+                    </button>
+                </div>
+
+                <!-- Filters -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 no-print">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">กรองตามชั้นเรียน</label>
+                        <select id="summary-class" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="all">ทุกชั้นเรียน</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">กรองตามประเภทผู้ประเมิน</label>
+                        <select id="summary-evaluator-type" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="all">ทุกประเภท</option>
+                            <option value="student">นักเรียนประเมินตนเอง</option>
+                            <option value="teacher">ครูประเมิน</option>
+                            <option value="parent">ผู้ปกครองประเมิน</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Summary Content -->
+                <div id="summary-result-content">
+                    <!-- Overview Info -->
+                    <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                        <h3 class="font-semibold text-gray-800 mb-3">ℹ️ ข้อมูลภาพรวม</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                            <p><strong>นักเรียนทั้งหมด:</strong> <span id="summary-total-students">-</span> คน</p>
+                            <p><strong>นักเรียนที่ประเมินแล้ว:</strong> <span id="summary-assessed-students">-</span> คน</p>
+                            <p><strong>วันที่สรุป:</strong> <span id="summary-date">-</span></p>
+                        </div>
                     </div>
 
-                    <!-- Filters -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 no-print">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">กรองตามชั้นเรียน</label>
-                            <select id="summary-class" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="all">ทุกชั้นเรียน</option>
-                            </select>
+                    <!-- Summary Table and Chart -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                        <div class="overflow-x-auto">
+                            <table class="w-full mobile-table border border-gray-300 rounded-lg">
+                                <thead class="bg-indigo-600 text-white">
+                                    <tr>
+                                        <th class="text-left">ด้านการประเมิน</th>
+                                        <th class="text-center">ปกติ (%)</th>
+                                        <th class="text-center">เสี่ยง (%)</th>
+                                        <th class="text-center">มีปัญหา (%)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="summary-table-body">
+                                    <!-- Summary data will be populated here -->
+                                </tbody>
+                            </table>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">กรองตามประเภทผู้ประเมิน</label>
-                            <select id="summary-evaluator-type" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="all">ทุกประเภท</option>
-                                <option value="student">นักเรียนประเมินตนเอง</option>
-                                <option value="teacher">ครูประเมิน</option>
-                                <option value="parent">ผู้ปกครองประเมิน</option>
-                            </select>
+                        <div class="chart-container">
+                            <canvas id="summary-chart"></canvas>
                         </div>
                     </div>
 
-                    <!-- Summary Content -->
-                    <div id="summary-result-content">
-                        <!-- Overview Info -->
-                        <div class="bg-gray-50 rounded-lg p-4 mb-6">
-                            <h3 class="text-lg font-semibold mb-3 text-gray-800">ข้อมูลภาพรวม</h3>
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                                <div>
-                                    <span class="font-medium text-gray-600">นักเรียนในระบบทั้งหมด:</span>
-                                    <span id="summary-total-students" class="ml-2 text-gray-800 font-semibold">-</span> คน
-                                </div>
-                                <div>
-                                    <span class="font-medium text-gray-600">นักเรียนที่ได้รับการประเมิน:</span>
-                                    <span id="summary-assessed-students" class="ml-2 text-gray-800 font-semibold">-</span> คน
-                                </div>
-                                <div>
-                                    <span class="font-medium text-gray-600">วันที่สรุปผล:</span>
-                                    <span id="summary-date" class="ml-2 text-gray-800">-</span>
-                                </div>
-                            </div>
+                    <!-- Students Needing Special Care -->
+                    <div class="mb-6">
+                        <h3 class="font-semibold text-gray-800 mb-3">⚠️ นักเรียนที่ควรได้รับการดูแลเป็นพิเศษ</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full mobile-table border border-gray-300 rounded-lg">
+                                <thead class="bg-red-100">
+                                    <tr>
+                                        <th class="text-left">ชื่อ-นามสกุล</th>
+                                        <th class="text-center">ชั้น</th>
+                                        <th class="text-left">ด้านที่พบปัญหา</th>
+                                        <th class="text-center">ระดับปัญหา</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="summary-special-care-body">
+                                    <!-- Special care students will be populated here -->
+                                </tbody>
+                            </table>
                         </div>
+                    </div>
 
-                        <!-- Summary Table and Chart -->
-                        <div class="mb-6">
-                            <h3 class="text-lg font-semibold mb-4 text-gray-800">ผลการประเมินภาพรวม (ร้อยละ)</h3>
-                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                <div class="overflow-x-auto">
-                                    <table class="w-full border-collapse border border-gray-300 text-sm">
-                                        <thead>
-                                            <tr class="bg-gray-100">
-                                                <th class="border border-gray-300 p-3 text-left font-medium">ด้านการประเมิน</th>
-                                                <th class="border border-gray-300 p-3 text-center font-medium">ปกติ (%)</th>
-                                                <th class="border border-gray-300 p-3 text-center font-medium">เสี่ยง (%)</th>
-                                                <th class="border border-gray-300 p-3 text-center font-medium">มีปัญหา (%)</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="summary-table-body">
-                                            <tr><td colspan="4" class="text-center p-4">ไม่มีข้อมูล</td></tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <div class="h-64 md:h-80">
-                                    <canvas id="summary-chart"></canvas>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Special Care Students -->
-                        <div class="mb-6">
-                            <h3 class="text-lg font-semibold mb-4 text-red-600">นักเรียนกลุ่มเสี่ยง/มีปัญหา</h3>
-                            <div class="overflow-x-auto border border-gray-300 rounded-lg">
-                                <table class="w-full text-sm">
-                                    <thead>
-                                        <tr class="bg-red-50">
-                                            <th class="border-b border-gray-300 p-3 text-left font-medium">ชื่อ-นามสกุล</th>
-                                            <th class="border-b border-gray-300 p-3 text-center font-medium">ชั้น</th>
-                                            <th class="border-b border-gray-300 p-3 text-left font-medium">ด้านที่พบความเสี่ยง/ปัญหา</th>
-                                            <th class="border-b border-gray-300 p-3 text-center font-medium">ระดับผลรวม</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="summary-special-care-body">
-                                        <tr><td colspan="4" class="text-center p-4">ไม่มีข้อมูล</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <!-- Summary Recommendations -->
-                        <div class="mt-6">
-                            <h3 class="text-lg font-semibold mb-3 text-gray-800">ข้อเสนอแนะภาพรวมเพิ่มเติม</h3>
-                            <textarea id="summary-recommendations" rows="4" 
-                                      class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 print-textarea" 
-                                      placeholder="ระบุแผนการดำเนินงานภาพรวม, การจัดกิจกรรมส่งเสริม, หรือข้อเสนอแนะอื่นๆ..."></textarea>
-                        </div>
-
-                        <!-- Print Date -->
-                        <div class="mt-6 text-center text-xs text-gray-500">
-                            <p>รายงานนี้สร้างจากระบบประเมิน SDQ</p>
-                            <p>วันที่พิมพ์: <span id="summary-print-date"></span></p>
-                        </div>
+                    <!-- Additional Recommendations -->
+                    <div>
+                        <h3 class="font-semibold text-gray-800 mb-2">💡 ข้อเสนอแนะภาพรวม</h3>
+                        <textarea id="summary-recommendations" rows="4" 
+                                  class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" 
+                                  placeholder="ระบุแผนการดำเนินงานภาพรวม, การจัดกิจกรรมส่งเสริม, หรือข้อเสนอแนะอื่นๆ..."></textarea>
                     </div>
                 </div>
             </div>
@@ -608,56 +692,45 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-gray-800 text-gray-300 py-6 no-print">
-        <div class="container mx-auto px-4 text-center">
+    <footer class="bg-gray-800 text-gray-300 py-4 no-print">
+        <div class="container-mobile text-center">
             <p class="text-sm">© <span id="current-year-footer"></span> ระบบประเมินพฤติกรรมนักเรียน SDQ</p>
-            <p class="text-xs mt-1 opacity-75">Design & Develop by Kruthee, Enhanced by AI Assistant</p>
+            <p class="text-xs mt-1">GitHub Version - Mobile Optimized</p>
         </div>
     </footer>
 
     <!-- Manual Add Student Modal -->
-    <div id="manual-add-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
-        <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
-                <h2 class="text-xl font-bold text-center mb-6 text-gray-800">เพิ่มข้อมูลนักเรียนรายบุคคล</h2>
-                <form id="manual-add-form">
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อ-นามสกุล นักเรียน *</label>
-                        <input type="text" id="manual-student-name" 
-                               class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                               placeholder="เช่น เด็กชายสมศักดิ์ เรียนดี" required>
-                        <p class="text-xs text-gray-500 mt-1">กรอกคำนำหน้าชื่อ, ชื่อ และนามสกุลให้ครบถ้วน</p>
-                    </div>
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">ชั้นเรียน *</label>
-                        <input type="text" id="manual-student-class" 
-                               class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                               placeholder="เช่น ม.1/2 หรือ อ.3" required>
-                        <p class="text-xs text-gray-500 mt-1">ระบุระดับชั้นและห้องเรียนของนักเรียน</p>
-                    </div>
-                    <div class="flex flex-col sm:flex-row gap-3">
-                        <button type="button" id="cancel-add-btn" 
-                                class="flex-1 bg-gray-500 hover:bg-gray-600 text-white px-4 py-3 rounded-lg transition-colors duration-200">
-                            ยกเลิก
-                        </button>
-                        <button type="submit" 
-                                class="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg transition-colors duration-200">
-                            บันทึกข้อมูล
-                        </button>
-                    </div>
-                </form>
-            </div>
+    <div id="manual-add-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-xl p-6 w-full max-w-md">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">➕ เพิ่มข้อมูลนักเรียน</h3>
+            <form id="manual-add-form">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อ-นามสกุล นักเรียน</label>
+                    <input type="text" id="manual-student-name" 
+                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" 
+                           placeholder="เช่น เด็กชายสมศักดิ์ เรียนดี" required>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">ชั้นเรียน</label>
+                    <input type="text" id="manual-student-class" 
+                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" 
+                           placeholder="เช่น ม.1/2 หรือ อ.3" required>
+                </div>
+                <div class="flex gap-3 justify-end">
+                    <button type="button" id="cancel-add-btn" 
+                            class="btn-mobile bg-gray-500 hover:bg-gray-600 text-white">
+                        ยกเลิก
+                    </button>
+                    <button type="submit" 
+                            class="btn-mobile bg-indigo-600 hover:bg-indigo-700 text-white">
+                        บันทึก
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
     <!-- Scripts -->
-    <script src="assets/js/config.js"></script>
-    <script src="assets/js/utils.js"></script>
-    <script src="assets/js/questions.js"></script>
-    <script src="assets/js/students.js"></script>
-    <script src="assets/js/assessment.js"></script>
-    <script src="assets/js/results.js"></script>
-    <script src="assets/js/charts.js"></script>
-    <script src="assets/js/app.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
