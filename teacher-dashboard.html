@@ -1,0 +1,1724 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Dashboard ครู - ระบบประเมิน SDQ</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Thai Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    
+    <style>
+        body { 
+            font-family: 'Sarabun', sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .dashboard-container {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 25px rgba(16, 185, 129, 0.25);
+        }
+        
+        .stat-card.warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+        
+        .stat-card.danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+        
+        .stat-card.info {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+        }
+        
+        .student-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+            transition: all 0.3s ease;
+            border-left: 4px solid #e5e7eb;
+        }
+        
+        .student-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .student-card.normal {
+            border-left-color: #10b981;
+        }
+        
+        .student-card.risk {
+            border-left-color: #f59e0b;
+        }
+        
+        .student-card.problem {
+            border-left-color: #ef4444;
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .status-normal { background: #dcfce7; color: #166534; }
+        .status-risk { background: #fef3c7; color: #92400e; }
+        .status-problem { background: #fef2f2; color: #dc2626; }
+        .status-not-assessed { background: #f3f4f6; color: #6b7280; }
+        
+        .quick-action-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 500;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .quick-action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+            color: white;
+            text-decoration: none;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .tab {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+            border: 2px solid transparent;
+        }
+        
+        .tab.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .tab:not(.active) {
+            background: #f8fafc;
+            color: #64748b;
+        }
+        
+        .tab:not(.active):hover {
+            background: #f1f5f9;
+            color: #475569;
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 20px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #fff;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .assessment-form {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+        
+        .question-item {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .radio-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.5rem;
+        }
+        
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .radio-item:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+        }
+        
+        .radio-item.selected {
+            background: #eff6ff;
+            border-color: #3b82f6;
+            color: #1d4ed8;
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .search-highlight {
+            background-color: #fef3c7;
+            padding: 0.1rem;
+            border-radius: 0.25rem;
+        }
+        
+        .welcome-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .class-selector {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            color: white;
+            margin-top: 1rem;
+        }
+        
+        .class-selector option {
+            background: #374151;
+            color: white;
+        }
+        
+        @media (max-width: 768px) {
+            .stat-card {
+                text-align: center;
+            }
+            
+            .radio-group {
+                flex-direction: column;
+            }
+            
+            .modal-content {
+                padding: 1rem;
+                margin: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <div id="loading-text">กำลังประมวลผล...</div>
+    </div>
+
+    <div class="min-h-screen p-4">
+        <!-- Welcome Banner -->
+        <div class="dashboard-container max-w-7xl mx-auto mb-6 p-6">
+            <div class="welcome-banner">
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center">
+                    <div class="flex-1">
+                        <h1 class="text-2xl lg:text-3xl font-bold mb-2">
+                            <i class="fas fa-chalkboard-teacher mr-3"></i>
+                            ยินดีต้อนรับ, <span id="teacher-name">คุณครู</span>
+                        </h1>
+                        <p class="text-blue-100 text-lg mb-4">
+                            แดชบอร์ดสำหรับการจัดการและประเมินนักเรียน
+                        </p>
+                        <div class="flex items-center text-blue-100 text-sm">
+                            <i class="fas fa-calendar-alt mr-2"></i>
+                            <span id="current-date">วันนี้</span>
+                            <span class="mx-4">|</span>
+                            <i class="fas fa-school mr-2"></i>
+                            <span id="school-name">โรงเรียน</span>
+                        </div>
+                    </div>
+                    <div class="mt-4 lg:mt-0">
+                        <label class="block text-blue-100 text-sm mb-2">เลือกชั้นเรียน:</label>
+                        <select id="class-selector" class="class-selector">
+                            <option value="">กำลังโหลด...</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="dashboard-container max-w-7xl mx-auto mb-6 p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">📊 สรุปสถิติ</h2>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="stat-card">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-green-100 text-sm">นักเรียนทั้งหมด</p>
+                            <p class="text-2xl font-bold" id="total-students">-</p>
+                        </div>
+                        <i class="fas fa-users text-3xl opacity-80"></i>
+                    </div>
+                </div>
+                
+                <div class="stat-card info">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-blue-100 text-sm">ประเมินแล้ว</p>
+                            <p class="text-2xl font-bold" id="assessed-students">-</p>
+                        </div>
+                        <i class="fas fa-clipboard-check text-3xl opacity-80"></i>
+                    </div>
+                </div>
+                
+                <div class="stat-card warning">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-yellow-100 text-sm">ต้องดูแล</p>
+                            <p class="text-2xl font-bold" id="risk-students">-</p>
+                        </div>
+                        <i class="fas fa-exclamation-triangle text-3xl opacity-80"></i>
+                    </div>
+                </div>
+                
+                <div class="stat-card danger">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-red-100 text-sm">มีปัญหา</p>
+                            <p class="text-2xl font-bold" id="problem-students">-</p>
+                        </div>
+                        <i class="fas fa-heart-broken text-3xl opacity-80"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="dashboard-container max-w-7xl mx-auto mb-6 p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">⚡ การดำเนินการด่วน</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button id="quick-assess-btn" class="quick-action-btn">
+                    <i class="fas fa-plus-circle"></i>
+                    ประเมินนักเรียนใหม่
+                </button>
+                <button id="view-reports-btn" class="quick-action-btn">
+                    <i class="fas fa-chart-bar"></i>
+                    ดูรายงานสรุป
+                </button>
+                <button id="export-data-btn" class="quick-action-btn">
+                    <i class="fas fa-download"></i>
+                    ส่งออกข้อมูล
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content Tabs -->
+        <div class="dashboard-container max-w-7xl mx-auto p-6">
+            <div class="flex flex-wrap gap-2 mb-6 border-b border-gray-200 pb-4">
+                <div class="tab active" data-tab="students">
+                    <i class="fas fa-users mr-2"></i>รายชื่อนักเรียน
+                </div>
+                <div class="tab" data-tab="assessment">
+                    <i class="fas fa-clipboard-list mr-2"></i>ประเมิน SDQ
+                </div>
+                <div class="tab" data-tab="reports">
+                    <i class="fas fa-chart-line mr-2"></i>รายงานและกราฟ
+                </div>
+                <div class="tab" data-tab="priority">
+                    <i class="fas fa-exclamation-circle mr-2"></i>นักเรียนที่ต้องดูแล
+                </div>
+            </div>
+
+            <!-- Students Tab -->
+            <div id="students-tab" class="tab-content">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">👥 รายชื่อนักเรียน</h3>
+                    <div class="flex gap-2 mt-2 sm:mt-0">
+                        <input 
+                            type="text" 
+                            id="student-search" 
+                            placeholder="ค้นหานักเรียน..."
+                            class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                        <button id="refresh-students-btn" class="btn-secondary">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="students-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Student cards will be populated here -->
+                </div>
+                
+                <div id="students-empty" class="text-center py-12 hidden">
+                    <i class="fas fa-user-graduate text-6xl text-gray-300 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-gray-500 mb-2">ไม่พบนักเรียน</h3>
+                    <p class="text-gray-400">ยังไม่มีนักเรียนในชั้นเรียนที่เลือก</p>
+                </div>
+            </div>
+
+            <!-- Assessment Tab -->
+            <div id="assessment-tab" class="tab-content hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">📝 ประเมิน SDQ นักเรียน</h3>
+                    <button id="clear-assessment-btn" class="btn-secondary">
+                        <i class="fas fa-eraser mr-2"></i>ล้างฟอร์ม
+                    </button>
+                </div>
+                
+                <div class="assessment-form">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">เลือกนักเรียน *</label>
+                        <select id="student-select" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <option value="">-- เลือกนักเรียนที่ต้องการประเมิน --</option>
+                        </select>
+                    </div>
+                    
+                    <div id="assessment-questions" class="hidden">
+                        <h4 class="text-lg font-semibold text-gray-800 mb-4">คำถาม SDQ (Strengths and Difficulties Questionnaire)</h4>
+                        <p class="text-sm text-gray-600 mb-6">กรุณาเลือกคำตอบที่ตรงกับพฤติกรรมของนักเรียนคนนี้ในช่วง 6 เดือนที่ผ่านมา</p>
+                        
+                        <div id="questions-container">
+                            <!-- Questions will be populated here -->
+                        </div>
+                        
+                        <div class="flex justify-end gap-3 mt-6">
+                            <button id="save-assessment-btn" class="quick-action-btn">
+                                <i class="fas fa-save mr-2"></i>บันทึกการประเมิน
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports Tab -->
+            <div id="reports-tab" class="tab-content hidden">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">📈 รายงานและกราฟ</h3>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="chart-container">
+                        <h4 class="text-md font-semibold text-gray-800 mb-3">สัดส่วนผลการประเมิน</h4>
+                        <canvas id="assessment-pie-chart" width="400" height="200"></canvas>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <h4 class="text-md font-semibold text-gray-800 mb-3">คะแนนเฉลี่ยแต่ละด้าน</h4>
+                        <canvas id="aspects-bar-chart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <h4 class="text-md font-semibold text-gray-800 mb-3">แนวโน้มการประเมินรายเดือน</h4>
+                    <canvas id="trend-line-chart" width="800" height="300"></canvas>
+                </div>
+            </div>
+
+            <!-- Priority Students Tab -->
+            <div id="priority-tab" class="tab-content hidden">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">🚨 นักเรียนที่ต้องดูแลเป็นพิเศษ</h3>
+                
+                <div id="priority-students" class="space-y-4">
+                    <!-- Priority students will be populated here -->
+                </div>
+                
+                <div id="priority-empty" class="text-center py-12 hidden">
+                    <i class="fas fa-thumbs-up text-6xl text-green-300 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-green-600 mb-2">ยอดเยี่ยม!</h3>
+                    <p class="text-green-500">ไม่มีนักเรียนที่ต้องดูแลเป็นพิเศษในขณะนี้</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assessment Results Modal -->
+    <div id="results-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">ผลการประเมิน SDQ</h2>
+                <button id="close-results-btn" class="text-gray-500 hover:text-gray-700 text-2xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div id="results-content">
+                <!-- Results will be populated here -->
+            </div>
+            
+            <div class="flex justify-end gap-3 mt-6">
+                <button id="print-results-btn" class="btn-success">
+                    <i class="fas fa-print mr-2"></i>พิมพ์ผล
+                </button>
+                <button id="close-results-modal-btn" class="btn-secondary">ปิด</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx-rfOnx5yh_XT0Kqx4cBkiCtQKZccRfdChhLrUYQIG7HPDfW8i6GwI4mdHBB5E9H87aA/exec'; // ⚠️ ต้องเปลี่ยนเป็น URL จริง
+        
+        // Global Variables
+        let currentUser = null;
+        let currentSession = null;
+        let allStudents = [];
+        let assessmentData = [];
+        let currentClass = null;
+        let filteredStudents = [];
+        let assessmentAnswers = [];
+        let currentAssessmentStudent = null;
+        
+        // SDQ Questions
+        const SDQ_QUESTIONS = [
+            "มีความพิจารณาใส่ใจความรู้สึกของผู้อื่น",
+            "กระสับกระส่าย ไม่สามารถอยู่นิ่งๆ ได้นาน",
+            "บ่นบอกว่าปวดหัว ปวดท้อง หรือไม่สบายบ่อยๆ",
+            "เต็มใจแบ่งปันของกับเด็กอื่นๆ (ขนม ของเล่น ดินสอ เป็นต้น)",
+            "มักจะโกรธหรือดุร้ายมาก",
+            "ค่อนข้างจะอยู่คนเดียว มักจะเล่นคนเดียวหรือเข้าหาผู้อื่นน้อย",
+            "โดยทั่วไปจะเชื่อฟัง มักจะทำตามที่ผู้ใหญ่ขอให้ทำ",
+            "มีความกังวลหรือกลุ้มใจหลายเรื่อง",
+            "พร้อมที่จะช่วยเหลือผู้อื่นที่เจ็บ อารมณ์เสีย หรือไม่สบายใจ",
+            "คอยอยู่ไม่นิ่ง มีแต่ไม่หยุดเคลื่อนไหว หรือดิ้นรนอยู่เรื่อยๆ",
+            "มีเพื่อนสนิทอย่างน้อยหนึ่งคน",
+            "มักจะทะเลาะหรือผลักดันเด็กอื่นๆ",
+            "มักจะไม่มีความสุข ท้อแท้ หรือร้องไห้",
+            "โดยทั่วไปเด็กคนอื่นๆ จะชอบเขา",
+            "เสียสมาธิง่าย วอกแวกง่าย",
+            "ประหม่าหรือยึดติดกับผู้ใหญ่เมื่ออยู่ในสถานการณ์ใหม่ๆ",
+            "มีความเมตตากรุณาต่อเด็กที่เล็กกว่า",
+            "มักจะพูดปด หรือใส่ร้ายผู้อื่น",
+            "เด็กคนอื่นๆ มักจะกลั่นแกล้งหรือรังแกเขา",
+            "มักจะอาสาช่วยเหลือผู้อื่น (พ่อแม่ ครู เด็กคนอื่นๆ)",
+            "คิดก่อนทำ",
+            "เอาของของผู้อื่นจากบ้าน โรงเรียน หรือที่อื่นๆ",
+            "เข้ากับผู้ใหญ่ได้ดีกว่าเด็กคนอื่นๆ",
+            "มีความกลัวหลายๆ อย่าง ตกใจง่าย",
+            "ทำกิจกรรมต่างๆ ให้สำเร็จ สามารถจดจ่อความสนใจได้นาน"
+        ];
+        
+        // Utility Functions
+        function showLoading(show = true, message = "กำลังประมวลผล...") {
+            const overlay = document.getElementById('loading-overlay');
+            const text = document.getElementById('loading-text');
+            text.textContent = message;
+            overlay.classList.toggle('hidden', !show);
+        }
+
+        function showSuccess(message, title = "สำเร็จ!") {
+            return Swal.fire({
+                icon: 'success',
+                title: title,
+                text: message,
+                confirmButtonText: 'ตกลง',
+                confirmButtonColor: '#10b981'
+            });
+        }
+
+        function showError(message, title = "เกิดข้อผิดพลาด!") {
+            return Swal.fire({
+                icon: 'error',
+                title: title,
+                text: message,
+                confirmButtonText: 'ตกลง',
+                confirmButtonColor: '#ef4444'
+            });
+        }
+
+        function showConfirm(message, title = "ยืนยันการดำเนินการ") {
+            return Swal.fire({
+                icon: 'question',
+                title: title,
+                text: message,
+                showCancelButton: true,
+                confirmButtonText: 'ยืนยัน',
+                cancelButtonText: 'ยกเลิก',
+                confirmButtonColor: '#3b82f6',
+                cancelButtonColor: '#6b7280'
+            });
+        }
+
+        // JSONP helper function
+        function makeJSONPRequest(action, data = {}) {
+            return new Promise((resolve, reject) => {
+                const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
+                
+                window[callbackName] = function(response) {
+                    delete window[callbackName];
+                    document.body.removeChild(script);
+                    resolve(response);
+                };
+                
+                const params = new URLSearchParams({
+                    action: action,
+                    callback: callbackName,
+                    ...data
+                });
+                
+                const script = document.createElement('script');
+                script.src = `${GAS_WEB_APP_URL}?${params.toString()}`;
+                
+                script.onerror = function() {
+                    delete window[callbackName];
+                    document.body.removeChild(script);
+                    reject(new Error('JSONP request failed'));
+                };
+                
+                document.body.appendChild(script);
+                
+                setTimeout(() => {
+                    if (window[callbackName]) {
+                        delete window[callbackName];
+                        document.body.removeChild(script);
+                        reject(new Error('Request timeout'));
+                    }
+                }, 30000);
+            });
+        }
+
+        // Authentication and Session Management
+        function getCurrentUser() {
+            const userData = localStorage.getItem('sdq_user') || sessionStorage.getItem('sdq_user');
+            const sessionId = localStorage.getItem('sdq_session') || sessionStorage.getItem('sdq_session');
+            
+            if (userData && sessionId) {
+                currentUser = JSON.parse(userData);
+                currentSession = sessionId;
+                return true;
+            }
+            return false;
+        }
+
+        function redirectToLogin() {
+            showError('กรุณาเข้าสู่ระบบใหม่').then(() => {
+                window.location.href = 'login.html';
+            });
+        }
+
+        // Data Loading Functions
+        async function loadStudents() {
+            try {
+                showLoading(true, "กำลังโหลดข้อมูลนักเรียน...");
+                
+                const response = await makeJSONPRequest('getStudentsForUser', {
+                    sessionId: currentSession,
+                    academicYear: new Date().getFullYear() + 543 // ปีปัจจุบัน
+                });
+                
+                if (response && response.success) {
+                    allStudents = response.students || [];
+                    updateClassSelector();
+                    filterStudentsByClass();
+                    updateStatistics();
+                    populateStudentSelect();
+                } else {
+                    if (response && response.message === 'Session หมดอายุ') {
+                        redirectToLogin();
+                        return;
+                    }
+                    allStudents = [];
+                    updateStatistics();
+                }
+                
+                showLoading(false);
+                
+            } catch (error) {
+                showLoading(false);
+                showError(`ไม่สามารถโหลดข้อมูลนักเรียนได้: ${error.message}`);
+                console.error('Load students error:', error);
+            }
+        }
+
+        async function loadAssessmentData() {
+            try {
+                const response = await makeJSONPRequest('getSummaryResultsForUser', {
+                    sessionId: currentSession,
+                    classFilter: currentClass || 'all',
+                    evaluatorTypeFilter: 'teacher',
+                    aspectFilter: 'all'
+                });
+                
+                if (response && response.success) {
+                    assessmentData = response.data || {};
+                    updateStatistics();
+                    updateCharts();
+                    updatePriorityStudents();
+                } else if (response && response.message === 'Session หมดอายุ') {
+                    redirectToLogin();
+                }
+                
+            } catch (error) {
+                console.error('Load assessment data error:', error);
+            }
+        }
+
+        // UI Update Functions
+        function updateClassSelector() {
+            const selector = document.getElementById('class-selector');
+            const classes = [...new Set(allStudents.map(s => s.class).filter(c => c))];
+            
+            selector.innerHTML = '<option value="">ทุกชั้นเรียน</option>';
+            classes.sort((a, b) => a.localeCompare(b, 'th', { numeric: true }));
+            
+            classes.forEach(className => {
+                const option = document.createElement('option');
+                option.value = className;
+                option.textContent = className;
+                selector.appendChild(option);
+            });
+            
+            // Set default to first assigned class
+            if (currentUser.assignedClasses && currentUser.assignedClasses.length > 0) {
+                const firstClass = currentUser.assignedClasses[0];
+                if (classes.includes(firstClass)) {
+                    selector.value = firstClass;
+                    currentClass = firstClass;
+                }
+            }
+        }
+
+        function filterStudentsByClass() {
+            if (!currentClass) {
+                filteredStudents = allStudents;
+            } else {
+                filteredStudents = allStudents.filter(student => student.class === currentClass);
+            }
+            
+            displayStudents();
+        }
+
+        function displayStudents() {
+            const container = document.getElementById('students-grid');
+            const emptyState = document.getElementById('students-empty');
+            const searchTerm = document.getElementById('student-search').value.toLowerCase();
+            
+            let studentsToShow = filteredStudents;
+            
+            if (searchTerm) {
+                studentsToShow = filteredStudents.filter(student => 
+                    student.name.toLowerCase().includes(searchTerm) ||
+                    (student.class && student.class.toLowerCase().includes(searchTerm))
+                );
+            }
+            
+            if (studentsToShow.length === 0) {
+                container.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            
+            container.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+            
+            container.innerHTML = studentsToShow.map(student => createStudentCard(student)).join('');
+        }
+
+        function createStudentCard(student) {
+            const assessment = getLatestAssessment(student.id);
+            const status = assessment ? getAssessmentStatus(assessment) : 'not-assessed';
+            const statusInfo = getStatusInfo(status);
+            
+            return `
+                <div class="student-card ${status}" data-student-id="${student.id}">
+                    <div class="p-4">
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-user-graduate text-white"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-gray-800">${highlightSearchTerm(student.name)}</h4>
+                                    <p class="text-sm text-gray-600">${student.class || 'ไม่มีข้อมูลชั้น'}</p>
+                                </div>
+                            </div>
+                            <span class="status-badge status-${status}">
+                                <i class="${statusInfo.icon} mr-1"></i>${statusInfo.label}
+                            </span>
+                        </div>
+                        
+                        ${assessment ? `
+                            <div class="mb-3 text-sm">
+                                <p class="text-gray-600">ประเมินล่าสุด: ${formatDate(assessment.timestamp)}</p>
+                                <p class="text-gray-600">คะแนนรวม: ${assessment.scores.totalDifficulties}/40</p>
+                            </div>
+                        ` : `
+                            <div class="mb-3 text-sm text-gray-500">
+                                <p>ยังไม่ได้ประเมิน</p>
+                            </div>
+                        `}
+                        
+                        <div class="flex gap-2">
+                            <button onclick="assessStudent('${student.id}')" class="btn-success flex-1">
+                                <i class="fas fa-clipboard-check mr-1"></i>
+                                ${assessment ? 'ประเมินใหม่' : 'ประเมิน'}
+                            </button>
+                            ${assessment ? `
+                                <button onclick="viewResults('${student.id}')" class="btn-secondary">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateStatistics() {
+            const totalStudents = filteredStudents.length;
+            const assessedStudents = filteredStudents.filter(s => getLatestAssessment(s.id)).length;
+            const riskStudents = filteredStudents.filter(s => {
+                const assessment = getLatestAssessment(s.id);
+                return assessment && getAssessmentStatus(assessment) === 'risk';
+            }).length;
+            const problemStudents = filteredStudents.filter(s => {
+                const assessment = getLatestAssessment(s.id);
+                return assessment && getAssessmentStatus(assessment) === 'problem';
+            }).length;
+            
+            document.getElementById('total-students').textContent = totalStudents;
+            document.getElementById('assessed-students').textContent = assessedStudents;
+            document.getElementById('risk-students').textContent = riskStudents;
+            document.getElementById('problem-students').textContent = problemStudents;
+        }
+
+        function populateStudentSelect() {
+            const select = document.getElementById('student-select');
+            select.innerHTML = '<option value="">-- เลือกนักเรียนที่ต้องการประเมิน --</option>';
+            
+            filteredStudents.forEach(student => {
+                const option = document.createElement('option');
+                option.value = student.id;
+                option.textContent = `${student.name} (${student.class})`;
+                select.appendChild(option);
+            });
+        }
+
+        // Assessment Functions
+        function createAssessmentQuestions() {
+            const container = document.getElementById('questions-container');
+            container.innerHTML = '';
+            
+            SDQ_QUESTIONS.forEach((question, index) => {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'question-item';
+                questionDiv.innerHTML = `
+                    <div class="flex items-start">
+                        <div class="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-semibold mr-3 mt-1">
+                            ${index + 1}
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-gray-800 font-medium mb-3">${question}</p>
+                            <div class="radio-group">
+                                <div class="radio-item" data-question="${index}" data-value="0">
+                                    <input type="radio" name="q${index}" value="0" class="hidden">
+                                    <span>ไม่จริง</span>
+                                </div>
+                                <div class="radio-item" data-question="${index}" data-value="1">
+                                    <input type="radio" name="q${index}" value="1" class="hidden">
+                                    <span>ค่อนข้างจริง</span>
+                                </div>
+                                <div class="radio-item" data-question="${index}" data-value="2">
+                                    <input type="radio" name="q${index}" value="2" class="hidden">
+                                    <span>จริงแน่นอน</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(questionDiv);
+            });
+            
+            // Add event listeners for radio items
+            document.querySelectorAll('.radio-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const question = this.dataset.question;
+                    const value = this.dataset.value;
+                    
+                    // Remove selection from other options in same question
+                    document.querySelectorAll(`[data-question="${question}"]`).forEach(option => {
+                        option.classList.remove('selected');
+                        option.querySelector('input').checked = false;
+                    });
+                    
+                    // Select this option
+                    this.classList.add('selected');
+                    this.querySelector('input').checked = true;
+                    
+                    // Update answers array
+                    assessmentAnswers[parseInt(question)] = parseInt(value);
+                });
+            });
+        }
+
+        async function saveAssessment() {
+            if (!currentAssessmentStudent) {
+                showError('กรุณาเลือกนักเรียนที่ต้องการประเมิน');
+                return;
+            }
+            
+            if (assessmentAnswers.length !== 25 || assessmentAnswers.some(answer => answer === undefined)) {
+                showError('กรุณาตอบคำถามให้ครบทุกข้อ');
+                return;
+            }
+            
+            const result = await showConfirm('คุณต้องการบันทึกผลการประเมินนี้หรือไม่?');
+            if (!result.isConfirmed) return;
+            
+            try {
+                showLoading(true, "กำลังบันทึกการประเมิน...");
+                
+                const student = allStudents.find(s => s.id === currentAssessmentStudent);
+                const assessmentData = {
+                    studentId: student.id,
+                    studentName: student.name,
+                    studentClass: student.class,
+                    evaluatorType: 'teacher',
+                    evaluatorName: currentUser.fullName,
+                    relation: 'ครูประจำชั้น',
+                    answers: assessmentAnswers
+                };
+                
+                const response = await makeJSONPRequest('saveAssessment', {
+                    data: JSON.stringify(assessmentData)
+                });
+                
+                showLoading(false);
+                
+                if (response && response.success) {
+                    await showSuccess('บันทึกการประเมินเรียบร้อยแล้ว!');
+                    
+                    // Show results
+                    showAssessmentResults(response);
+                    
+                    // Reset form
+                    clearAssessmentForm();
+                    
+                    // Reload data
+                    await loadStudents();
+                    await loadAssessmentData();
+                    
+                } else {
+                    showError(response ? response.message : 'ไม่สามารถบันทึกการประเมินได้');
+                }
+                
+            } catch (error) {
+                showLoading(false);
+                showError(`ไม่สามารถบันทึกการประเมินได้: ${error.message}`);
+                console.error('Save assessment error:', error);
+            }
+        }
+
+        function showAssessmentResults(results) {
+            const modal = document.getElementById('results-modal');
+            const content = document.getElementById('results-content');
+            
+            content.innerHTML = `
+                <div class="space-y-6">
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <h3 class="font-semibold text-blue-800 mb-2">ข้อมูลนักเรียน</h3>
+                        <p><strong>ชื่อ:</strong> ${results.studentInfo.name}</p>
+                        <p><strong>ชั้น:</strong> ${results.studentInfo.class}</p>
+                        <p><strong>ประเมินโดย:</strong> ${results.studentInfo.evaluatorName}</p>
+                        <p><strong>วันที่ประเมิน:</strong> ${results.studentInfo.timestamp}</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-gray-800 mb-3">คะแนนดิบ</h4>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span>ด้านอารมณ์:</span>
+                                    <span class="font-medium">${results.scores.emotional}/10</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>ด้านความประพฤติ:</span>
+                                    <span class="font-medium">${results.scores.conduct}/10</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>ด้านสมาธิ:</span>
+                                    <span class="font-medium">${results.scores.hyperactivity}/10</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>ด้านเพื่อน:</span>
+                                    <span class="font-medium">${results.scores.peerProblems}/10</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>ด้านสังคม:</span>
+                                    <span class="font-medium">${results.scores.prosocial}/10</span>
+                                </div>
+                                <hr>
+                                <div class="flex justify-between font-semibold">
+                                    <span>คะแนนรวมปัญหา:</span>
+                                    <span>${results.scores.totalDifficulties}/40</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-gray-800 mb-3">การแปลผล</h4>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span>ด้านอารมณ์:</span>
+                                    <span class="status-badge status-${getInterpretationStatus(results.interpretations.emotional)}">
+                                        ${results.interpretations.emotional}
+                                    </span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>ด้านความประพฤติ:</span>
+                                    <span class="status-badge status-${getInterpretationStatus(results.interpretations.conduct)}">
+                                        ${results.interpretations.conduct}
+                                    </span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>ด้านสมาธิ:</span>
+                                    <span class="status-badge status-${getInterpretationStatus(results.interpretations.hyperactivity)}">
+                                        ${results.interpretations.hyperactivity}
+                                    </span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>ด้านเพื่อน:</span>
+                                    <span class="status-badge status-${getInterpretationStatus(results.interpretations.peerProblems)}">
+                                        ${results.interpretations.peerProblems}
+                                    </span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>ด้านสังคม:</span>
+                                    <span class="status-badge status-${getInterpretationStatus(results.interpretations.prosocial)}">
+                                        ${results.interpretations.prosocial}
+                                    </span>
+                                </div>
+                                <hr>
+                                <div class="flex justify-between font-semibold">
+                                    <span>สรุปรวม:</span>
+                                    <span class="status-badge status-${getInterpretationStatus(results.interpretations.total)}">
+                                        ${results.interpretations.total}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    ${results.interpretations.total !== 'ปกติ' ? `
+                        <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+                            <h4 class="font-semibold text-yellow-800 mb-2">
+                                <i class="fas fa-exclamation-triangle mr-2"></i>ข้อแนะนำ
+                            </h4>
+                            <p class="text-yellow-700 text-sm">
+                                นักเรียนคนนี้ควรได้รับการดูแลเป็นพิเศษ กรุณาติดตามและให้การช่วยเหลือตามความเหมาะสม
+                                อาจพิจารณาส่งต่อให้ผู้เชี่ยวชาญเพื่อการประเมินและช่วยเหลือเพิ่มเติม
+                            </p>
+                        </div>
+                    ` : `
+                        <div class="bg-green-50 border border-green-200 p-4 rounded-lg">
+                            <h4 class="font-semibold text-green-800 mb-2">
+                                <i class="fas fa-check-circle mr-2"></i>ผลการประเมิน
+                            </h4>
+                            <p class="text-green-700 text-sm">
+                                นักเรียนคนนี้มีพัฒนาการทางจิตใจและพฤติกรรมในระดับปกติ ควรส่งเสริมให้คงไว้ซึ่งจุดแข็งที่มีอยู่
+                            </p>
+                        </div>
+                    `}
+                </div>
+            `;
+            
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function clearAssessmentForm() {
+            document.getElementById('student-select').value = '';
+            document.getElementById('assessment-questions').classList.add('hidden');
+            assessmentAnswers = [];
+            currentAssessmentStudent = null;
+            
+            // Clear all selections
+            document.querySelectorAll('.radio-item').forEach(item => {
+                item.classList.remove('selected');
+                item.querySelector('input').checked = false;
+            });
+        }
+
+        // Helper Functions
+        function getLatestAssessment(studentId) {
+            // This would normally come from the server
+            // For now, return null as placeholder
+            return null;
+        }
+
+        function getAssessmentStatus(assessment) {
+            if (!assessment) return 'not-assessed';
+            
+            const totalScore = assessment.scores.totalDifficulties;
+            if (totalScore <= 11) return 'normal';
+            if (totalScore <= 15) return 'risk';
+            return 'problem';
+        }
+
+        function getStatusInfo(status) {
+            const statusMap = {
+                'normal': { label: 'ปกติ', icon: 'fas fa-check-circle' },
+                'risk': { label: 'เสี่ยง', icon: 'fas fa-exclamation-triangle' },
+                'problem': { label: 'มีปัญหา', icon: 'fas fa-exclamation-circle' },
+                'not-assessed': { label: 'ยังไม่ประเมิน', icon: 'fas fa-clock' }
+            };
+            return statusMap[status] || statusMap['not-assessed'];
+        }
+
+        function getInterpretationStatus(interpretation) {
+            if (interpretation === 'ปกติ' || interpretation === 'จุดแข็ง') return 'normal';
+            if (interpretation === 'เสี่ยง') return 'risk';
+            if (interpretation === 'มีปัญหา' || interpretation === 'ควรปรับปรุง') return 'problem';
+            return 'normal';
+        }
+
+        function highlightSearchTerm(text) {
+            const searchTerm = document.getElementById('student-search').value;
+            if (!searchTerm || !text) return text;
+            
+            const regex = new RegExp(`(${searchTerm})`, 'gi');
+            return text.replace(regex, '<span class="search-highlight">$1</span>');
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'ไม่ทราบ';
+            
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('th-TH', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                });
+            } catch (error) {
+                return 'ไม่ทราบ';
+            }
+        }
+
+        // Tab Management
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(`${tabName}-tab`).classList.remove('hidden');
+            
+            // Add active class to selected tab
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            
+            // Load tab-specific data
+            if (tabName === 'reports') {
+                updateCharts();
+            } else if (tabName === 'priority') {
+                updatePriorityStudents();
+            }
+        }
+
+        // Chart Functions (placeholders)
+        function updateCharts() {
+            // This would create actual charts using Chart.js
+            // For now, just placeholder
+            console.log('Updating charts...');
+        }
+
+        function updatePriorityStudents() {
+            const container = document.getElementById('priority-students');
+            const emptyState = document.getElementById('priority-empty');
+            
+            // Filter students who need special attention
+            const priorityStudents = filteredStudents.filter(student => {
+                const assessment = getLatestAssessment(student.id);
+                return assessment && (getAssessmentStatus(assessment) === 'risk' || getAssessmentStatus(assessment) === 'problem');
+            });
+            
+            if (priorityStudents.length === 0) {
+                container.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            
+            container.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+            
+            container.innerHTML = priorityStudents.map(student => {
+                const assessment = getLatestAssessment(student.id);
+                const status = getAssessmentStatus(assessment);
+                const statusInfo = getStatusInfo(status);
+                
+                return `
+                    <div class="bg-white p-4 rounded-lg border-l-4 ${status === 'problem' ? 'border-red-500' : 'border-yellow-500'}">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-12 h-12 bg-gradient-to-br from-red-500 to-pink-600 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-user-graduate text-white"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-gray-800">${student.name}</h4>
+                                    <p class="text-sm text-gray-600">${student.class}</p>
+                                    <p class="text-sm text-gray-500">คะแนนรวม: ${assessment.scores.totalDifficulties}/40</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="status-badge status-${status} mb-2 block">
+                                    <i class="${statusInfo.icon} mr-1"></i>${statusInfo.label}
+                                </span>
+                                <div class="flex gap-2">
+                                    <button onclick="viewResults('${student.id}')" class="btn-secondary text-xs">
+                                        <i class="fas fa-eye mr-1"></i>ดูผล
+                                    </button>
+                                    <button onclick="assessStudent('${student.id}')" class="btn-success text-xs">
+                                        <i class="fas fa-clipboard-check mr-1"></i>ประเมินใหม่
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Global Functions for Button Clicks
+        window.assessStudent = function(studentId) {
+            currentAssessmentStudent = studentId;
+            const student = allStudents.find(s => s.id === studentId);
+            
+            if (student) {
+                document.getElementById('student-select').value = studentId;
+                document.getElementById('assessment-questions').classList.remove('hidden');
+                switchTab('assessment');
+                
+                // Scroll to assessment form
+                document.getElementById('assessment-tab').scrollIntoView({ 
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        };
+
+        window.viewResults = function(studentId) {
+            // This would load and show actual results
+            showError('ฟีเจอร์นี้กำลังพัฒนา', 'Coming Soon');
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check authentication
+            if (!getCurrentUser()) {
+                redirectToLogin();
+                return;
+            }
+            
+            // Check if user is teacher
+            if (currentUser.role !== 'TEACHER') {
+                showError('หน้านี้สำหรับครูเท่านั้น').then(() => {
+                    window.location.href = 'index.html';
+                });
+                return;
+            }
+            
+            // Update UI with user info
+            document.getElementById('teacher-name').textContent = currentUser.fullName || currentUser.username;
+            document.getElementById('school-name').textContent = currentUser.school || 'โรงเรียน';
+            document.getElementById('current-date').textContent = new Date().toLocaleDateString('th-TH', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                weekday: 'long'
+            });
+            
+            // Create assessment questions
+            createAssessmentQuestions();
+            
+            // Load initial data
+            loadStudents();
+            loadAssessmentData();
+            
+            // Event Listeners
+            
+            // Class selector
+            document.getElementById('class-selector').addEventListener('change', function(e) {
+                currentClass = e.target.value || null;
+                filterStudentsByClass();
+                updateStatistics();
+                populateStudentSelect();
+                loadAssessmentData();
+            });
+            
+            // Student search
+            document.getElementById('student-search').addEventListener('input', function() {
+                displayStudents();
+            });
+            
+            // Refresh button
+            document.getElementById('refresh-students-btn').addEventListener('click', function() {
+                loadStudents();
+                loadAssessmentData();
+            });
+            
+            // Tab switching
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabName = this.dataset.tab;
+                    switchTab(tabName);
+                });
+            });
+            
+            // Quick action buttons
+            document.getElementById('quick-assess-btn').addEventListener('click', function() {
+                switchTab('assessment');
+            });
+            
+            document.getElementById('view-reports-btn').addEventListener('click', function() {
+                switchTab('reports');
+            });
+            
+            document.getElementById('export-data-btn').addEventListener('click', function() {
+                exportData();
+            });
+            
+            // Student selection for assessment
+            document.getElementById('student-select').addEventListener('change', function(e) {
+                const studentId = e.target.value;
+                if (studentId) {
+                    currentAssessmentStudent = studentId;
+                    document.getElementById('assessment-questions').classList.remove('hidden');
+                    clearAssessmentForm();
+                    assessmentAnswers = new Array(25).fill(undefined);
+                } else {
+                    document.getElementById('assessment-questions').classList.add('hidden');
+                    currentAssessmentStudent = null;
+                }
+            });
+            
+            // Save assessment button
+            document.getElementById('save-assessment-btn').addEventListener('click', saveAssessment);
+            
+            // Clear assessment button
+            document.getElementById('clear-assessment-btn').addEventListener('click', function() {
+                const result = showConfirm('คุณต้องการล้างข้อมูลการประเมินหรือไม่?');
+                result.then((confirmed) => {
+                    if (confirmed.isConfirmed) {
+                        clearAssessmentForm();
+                    }
+                });
+            });
+            
+            // Modal close buttons
+            document.getElementById('close-results-btn').addEventListener('click', closeResultsModal);
+            document.getElementById('close-results-modal-btn').addEventListener('click', closeResultsModal);
+            
+            // Print results button
+            document.getElementById('print-results-btn').addEventListener('click', function() {
+                printResults();
+            });
+            
+            // Close modal when clicking outside
+            document.getElementById('results-modal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeResultsModal();
+                }
+            });
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                // ESC to close modals
+                if (e.key === 'Escape') {
+                    closeResultsModal();
+                }
+                
+                // Ctrl/Cmd + S to save assessment (when in assessment tab)
+                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                    e.preventDefault();
+                    if (!document.getElementById('assessment-tab').classList.contains('hidden')) {
+                        saveAssessment();
+                    }
+                }
+            });
+        });
+        
+        // Additional Functions
+        function closeResultsModal() {
+            document.getElementById('results-modal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+        
+        function printResults() {
+            const printContent = document.getElementById('results-content').innerHTML;
+            const printWindow = window.open('', '_blank');
+            
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>ผลการประเมิน SDQ</title>
+                    <style>
+                        body { font-family: 'Sarabun', sans-serif; margin: 20px; }
+                        .status-badge { 
+                            display: inline-block; 
+                            padding: 2px 8px; 
+                            border-radius: 4px; 
+                            font-size: 12px;
+                            font-weight: bold;
+                        }
+                        .status-normal { background: #dcfce7; color: #166534; }
+                        .status-risk { background: #fef3c7; color: #92400e; }
+                        .status-problem { background: #fef2f2; color: #dc2626; }
+                        .bg-blue-50 { background: #eff6ff; padding: 16px; border-radius: 8px; }
+                        .bg-gray-50 { background: #f9fafb; padding: 16px; border-radius: 8px; }
+                        .bg-yellow-50 { background: #fefce8; border: 1px solid #fde047; padding: 16px; border-radius: 8px; }
+                        .bg-green-50 { background: #f0fdf4; border: 1px solid #bbf7d0; padding: 16px; border-radius: 8px; }
+                        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+                        .space-y-6 > * + * { margin-top: 24px; }
+                        .space-y-2 > * + * { margin-top: 8px; }
+                        h3, h4 { margin: 0 0 8px 0; }
+                        hr { margin: 8px 0; border: none; border-top: 1px solid #e5e7eb; }
+                        @media print {
+                            body { margin: 0; }
+                            .no-print { display: none; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>ผลการประเมิน SDQ</h1>
+                    <div class="space-y-6">
+                        ${printContent}
+                    </div>
+                </body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+            printWindow.focus();
+            
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 250);
+        }
+        
+        async function exportData() {
+            try {
+                showLoading(true, "กำลังเตรียมข้อมูลสำหรับส่งออก...");
+                
+                // Get assessment data for current class
+                const exportData = filteredStudents.map(student => {
+                    const assessment = getLatestAssessment(student.id);
+                    return {
+                        'ชื่อ-นามสกุล': student.name,
+                        'ชั้นเรียน': student.class,
+                        'สถานะการประเมิน': assessment ? 'ประเมินแล้ว' : 'ยังไม่ประเมิน',
+                        'วันที่ประเมิน': assessment ? formatDate(assessment.timestamp) : '-',
+                        'คะแนนอารมณ์': assessment ? assessment.scores.emotional : '-',
+                        'คะแนนความประพฤติ': assessment ? assessment.scores.conduct : '-',
+                        'คะแนนสมาธิ': assessment ? assessment.scores.hyperactivity : '-',
+                        'คะแนนเพื่อน': assessment ? assessment.scores.peerProblems : '-',
+                        'คะแนนสังคม': assessment ? assessment.scores.prosocial : '-',
+                        'คะแนนรวม': assessment ? assessment.scores.totalDifficulties : '-',
+                        'การแปลผล': assessment ? assessment.interpretations.total : '-'
+                    };
+                });
+                
+                // Convert to CSV
+                const csvContent = convertToCSV(exportData);
+                
+                // Download CSV file
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `SDQ_Assessment_${currentClass || 'All'}_${new Date().toISOString().split('T')[0]}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                showLoading(false);
+                showSuccess('ส่งออกข้อมูลเรียบร้อยแล้ว');
+                
+            } catch (error) {
+                showLoading(false);
+                showError(`ไม่สามารถส่งออกข้อมูลได้: ${error.message}`);
+                console.error('Export data error:', error);
+            }
+        }
+        
+        function convertToCSV(data) {
+            if (!data || data.length === 0) return '';
+            
+            const headers = Object.keys(data[0]);
+            const csvHeaders = headers.join(',');
+            
+            const csvRows = data.map(row => {
+                return headers.map(header => {
+                    const value = row[header];
+                    // Handle values that contain commas or quotes
+                    if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+                        return `"${value.replace(/"/g, '""')}"`;
+                    }
+                    return value;
+                }).join(',');
+            });
+            
+            return [csvHeaders, ...csvRows].join('\n');
+        }
+        
+        // Notification System
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-md ${type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500'} text-white`;
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'} mr-2"></i>
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white hover:text-gray-200">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+        
+        // Auto-save functionality for assessment
+        let autoSaveTimer = null;
+        function scheduleAutoSave() {
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(() => {
+                if (currentAssessmentStudent && assessmentAnswers.some(answer => answer !== undefined)) {
+                    // Save draft to localStorage
+                    const draftData = {
+                        studentId: currentAssessmentStudent,
+                        answers: assessmentAnswers,
+                        timestamp: new Date().toISOString()
+                    };
+                    localStorage.setItem('sdq_assessment_draft', JSON.stringify(draftData));
+                    showNotification('บันทึกร่างอัตโนมัติ', 'info');
+                }
+            }, 30000); // Auto-save every 30 seconds
+        }
+        
+        // Load draft when selecting student
+        function loadDraft(studentId) {
+            const draftData = localStorage.getItem('sdq_assessment_draft');
+            if (draftData) {
+                try {
+                    const draft = JSON.parse(draftData);
+                    if (draft.studentId === studentId) {
+                        const result = confirm('พบร่างการประเมินที่บันทึกไว้ ต้องการโหลดหรือไม่?');
+                        if (result) {
+                            assessmentAnswers = draft.answers;
+                            // Restore UI selections
+                            assessmentAnswers.forEach((answer, index) => {
+                                if (answer !== undefined) {
+                                    const radioItem = document.querySelector(`[data-question="${index}"][data-value="${answer}"]`);
+                                    if (radioItem) {
+                                        radioItem.click();
+                                    }
+                                }
+                            });
+                            showNotification('โหลดร่างการประเมินเรียบร้อย', 'success');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error loading draft:', error);
+                }
+            }
+        }
+        
+        // Clear draft after successful save
+        function clearDraft() {
+            localStorage.removeItem('sdq_assessment_draft');
+        }
+        
+        // Progress indicator for assessment
+        function updateAssessmentProgress() {
+            const answeredQuestions = assessmentAnswers.filter(answer => answer !== undefined).length;
+            const progress = (answeredQuestions / 25) * 100;
+            
+            let progressBar = document.getElementById('assessment-progress');
+            if (!progressBar) {
+                progressBar = document.createElement('div');
+                progressBar.id = 'assessment-progress';
+                progressBar.className = 'mb-4';
+                progressBar.innerHTML = `
+                    <div class="flex justify-between text-sm text-gray-600 mb-2">
+                        <span>ความคืบหน้า</span>
+                        <span id="progress-text">0/25 ข้อ</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div id="progress-fill" class="bg-blue-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                `;
+                document.getElementById('questions-container').parentNode.insertBefore(progressBar, document.getElementById('questions-container'));
+            }
+            
+            document.getElementById('progress-text').textContent = `${answeredQuestions}/25 ข้อ`;
+            document.getElementById('progress-fill').style.width = `${progress}%`;
+            
+            if (progress === 100) {
+                document.getElementById('progress-fill').className = 'bg-green-500 h-2 rounded-full transition-all duration-300';
+            }
+        }
+        
+        // Enhanced radio item click handler with progress tracking
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.radio-item')) {
+                const radioItem = e.target.closest('.radio-item');
+                const question = radioItem.dataset.question;
+                const value = radioItem.dataset.value;
+                
+                // Remove selection from other options in same question
+                document.querySelectorAll(`[data-question="${question}"]`).forEach(option => {
+                    option.classList.remove('selected');
+                    option.querySelector('input').checked = false;
+                });
+                
+                // Select this option
+                radioItem.classList.add('selected');
+                radioItem.querySelector('input').checked = true;
+                
+                // Update answers array
+                assessmentAnswers[parseInt(question)] = parseInt(value);
+                
+                // Update progress
+                updateAssessmentProgress();
+                
+                // Schedule auto-save
+                scheduleAutoSave();
+            }
+        });
+        
+        console.log('🎓 Teacher Dashboard initialized successfully!');
+    </script>
+</body>
+</html>
