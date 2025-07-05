@@ -1075,7 +1075,7 @@
                     return;
                 }
                 
-                if (!userId && password.length < 6) {
+                if (!userId && (!password || password.length < 6)) {
                     showError('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
                     return;
                 }
