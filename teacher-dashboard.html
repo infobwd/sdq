@@ -358,6 +358,95 @@
                 margin: 0.5rem;
             }
         }
+
+        /* เพิ่ม CSS นี้ในส่วน <style> ของไฟล์ teacher-dashboard.html */
+        
+        .chart-container {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            max-height: 400px; /* จำกัดความสูง */
+            overflow: hidden;
+            position: relative;
+        }
+
+        .chart-container canvas {
+            max-height: 300px !important; /* จำกัดความสูงของ canvas */
+            width: 100% !important;
+        }
+
+        /* สำหรับ line chart ให้กว้างขึ้น */
+        .chart-container:last-child {
+            max-height: 500px;
+        }
+
+        .chart-container:last-child canvas {
+            max-height: 400px !important;
+        }
+
+        /* แก้ไขปัญหาการแสดงผลใน responsive */
+        @media (max-width: 768px) {
+            .chart-container {
+                max-height: 350px;
+                padding: 1rem;
+            }
+            
+            .chart-container canvas {
+                max-height: 250px !important;
+            }
+            
+            .chart-container:last-child {
+                max-height: 400px;
+            }
+            
+            .chart-container:last-child canvas {
+                max-height: 300px !important;
+            }
+        }
+
+        /* แก้ไขปัญหา Student Cards ไม่แสดง */
+        #students-grid {
+            min-height: 200px;
+        }
+
+        #students-grid.hidden {
+            display: none !important;
+        }
+
+        /* ปรับปรุงการแสดงผล Loading */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            backdrop-filter: blur(5px);
+        }
+
+        /* ปรับปรุงการแสดงผล Tab */
+        .tab-content {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
     </style>
 </head>
 <body>
@@ -870,16 +959,32 @@
                     allStudents = response.students || [];
                     console.log(`Loaded ${allStudents.length} students from server`);
                     
+                    // ✅ แก้ไข: อัปเดต Class Selector ก่อน
                     updateClassSelector();
+                    
+                    // ✅ แก้ไข: ตั้งค่า default class ถ้ายังไม่มี
+                    if (!currentClass && allStudents.length > 0) {
+                        // ใช้ชั้นแรกที่พบเป็น default
+                        const firstClass = allStudents[0].class;
+                        if (firstClass) {
+                            currentClass = firstClass;
+                            document.getElementById('class-selector').value = firstClass;
+                        }
+                    }
+                    
+                    // กรองนักเรียนตามชั้นที่เลือก
                     filterStudentsByClass();
                     
                     // โหลดข้อมูลการประเมินสำหรับนักเรียนที่กรองแล้ว
                     await loadIndividualAssessments();
                     
+                    // อัปเดต UI ทั้งหมด
                     updateStatistics();
                     populateStudentSelect();
-                    updateCharts();
-                    updatePriorityStudents();
+                    
+                    // ✅ สำคัญ: แสดง Student Cards ทันที
+                    displayStudents();
+                    
                 } else {
                     if (response && response.message === 'Session หมดอายุ') {
                         redirectToLogin();
@@ -1701,21 +1806,17 @@
         function updateCharts() {
             console.log('Updating charts with assessment data...');
             
-            // ตรวจสอบว่ามีข้อมูลการประเมินหรือไม่
-            if (!assessmentData || Object.keys(assessmentData).length === 0) {
-                console.log('No assessment data available for charts');
-                createEmptyCharts();
-                return;
-            }
-            
             try {
-                // 1. Pie Chart - สัดส่วนผลการประเมิน
+                // ตรวจสอบว่าอยู่ในแท็บ Reports หรือไม่
+                const reportsTab = document.getElementById('reports-tab');
+                if (reportsTab.classList.contains('hidden')) {
+                    console.log('Reports tab is hidden, skipping chart update');
+                    return;
+                }
+                
+                // สร้าง/อัปเดตกราหทั้งหมด
                 createAssessmentPieChart();
-                
-                // 2. Bar Chart - คะแนนเฉลี่ยแต่ละด้าน
                 createAspectsBarChart();
-                
-                // 3. Line Chart - แนวโน้มการประเมิน
                 createTrendLineChart();
                 
                 console.log('Charts updated successfully');
@@ -1733,7 +1834,7 @@
                 return;
             }
             
-            // สร้างข้อมูลจำลองหากไม่มีข้อมูลจริง
+            // คำนวณข้อมูลจากนักเรียนที่กรองแล้ว
             const normalStudents = filteredStudents.filter(s => {
                 const assessment = getLatestAssessment(s.id);
                 return assessment && getAssessmentStatus(assessment) === 'normal';
@@ -1774,27 +1875,34 @@
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false,
+                    maintainAspectRatio: true, // ✅ เปลี่ยนเป็น true
+                    aspectRatio: 1.5, // ✅ เพิ่มอัตราส่วน
                     plugins: {
                         legend: {
                             position: 'bottom',
                             labels: {
-                                padding: 15,
-                                usePointStyle: true
+                                padding: 10, // ✅ ลดระยะห่าง
+                                usePointStyle: true,
+                                boxWidth: 12 // ✅ ลดขนาด legend
                             }
                         },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
                                     const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const percentage = ((context.raw / total) * 100).toFixed(1);
+                                    const percentage = total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0;
                                     return `${context.label}: ${context.raw} คน (${percentage}%)`;
                                 }
                             }
                         }
+                    },
+                    layout: {
+                        padding: 10 // ✅ เพิ่ม padding
                     }
                 }
             });
+            
+            console.log('Pie chart created with data:', [normalStudents, riskStudents, problemStudents, notAssessed]);
         }
 
         function createAspectsBarChart() {
@@ -1853,20 +1961,37 @@
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false,
+                    maintainAspectRatio: true, // ✅ เปลี่ยนเป็น true
+                    aspectRatio: 1.8, // ✅ เพิ่มอัตราส่วน
                     scales: {
                         y: {
                             beginAtZero: true,
                             max: 10,
                             title: {
                                 display: true,
-                                text: 'คะแนน'
+                                text: 'คะแนน',
+                                font: {
+                                    size: 12 // ✅ ลดขนาดฟอนต์
+                                }
+                            },
+                            ticks: {
+                                font: {
+                                    size: 10 // ✅ ลดขนาดฟอนต์
+                                }
                             }
                         },
                         x: {
                             title: {
                                 display: true,
-                                text: 'ด้านการประเมิน'
+                                text: 'ด้านการประเมิน',
+                                font: {
+                                    size: 12 // ✅ ลดขนาดฟอนต์
+                                }
+                            },
+                            ticks: {
+                                font: {
+                                    size: 10 // ✅ ลดขนาดฟอนต์
+                                }
                             }
                         }
                     },
@@ -1881,9 +2006,14 @@
                                 }
                             }
                         }
+                    },
+                    layout: {
+                        padding: 10 // ✅ เพิ่ม padding
                     }
                 }
             });
+            
+            console.log('Bar chart created with data:', aspectAverages);
         }
 
         function createTrendLineChart() {
@@ -1905,10 +2035,28 @@
                 const monthName = date.toLocaleDateString('th-TH', { month: 'short', year: '2-digit' });
                 months.push(monthName);
                 
-                // จำลองข้อมูล (ในระบบจริงควรดึงจากฐานข้อมูล)
-                assessedData.push(Math.floor(Math.random() * 20) + 10);
-                riskData.push(Math.floor(Math.random() * 5) + 1);
-                problemData.push(Math.floor(Math.random() * 3) + 1);
+                // ใช้ข้อมูลจริงจากเดือนปัจจุบัน ส่วนอื่นใช้จำลอง
+                if (i === 0) {
+                    // เดือนปัจจุบัน - ใช้ข้อมูลจริง
+                    const assessed = filteredStudents.filter(s => getLatestAssessment(s.id)).length;
+                    const risk = filteredStudents.filter(s => {
+                        const assessment = getLatestAssessment(s.id);
+                        return assessment && getAssessmentStatus(assessment) === 'risk';
+                    }).length;
+                    const problem = filteredStudents.filter(s => {
+                        const assessment = getLatestAssessment(s.id);
+                        return assessment && getAssessmentStatus(assessment) === 'problem';
+                    }).length;
+                    
+                    assessedData.push(assessed);
+                    riskData.push(risk);
+                    problemData.push(problem);
+                } else {
+                    // เดือนก่อนหน้า - ใช้ข้อมูลจำลอง
+                    assessedData.push(Math.floor(Math.random() * filteredStudents.length * 0.8) + 1);
+                    riskData.push(Math.floor(Math.random() * 3) + 1);
+                    problemData.push(Math.floor(Math.random() * 2) + 1);
+                }
             }
             
             // ทำลาย chart เดิม (ถ้ามี)
@@ -1926,39 +2074,63 @@
                             data: assessedData,
                             borderColor: '#10b981',
                             backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                            tension: 0.4
+                            tension: 0.4,
+                            borderWidth: 2,
+                            pointRadius: 4
                         },
                         {
                             label: 'กลุ่มเสี่ยง',
                             data: riskData,
                             borderColor: '#f59e0b',
                             backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                            tension: 0.4
+                            tension: 0.4,
+                            borderWidth: 2,
+                            pointRadius: 4
                         },
                         {
                             label: 'กลุ่มมีปัญหา',
                             data: problemData,
                             borderColor: '#ef4444',
                             backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                            tension: 0.4
+                            tension: 0.4,
+                            borderWidth: 2,
+                            pointRadius: 4
                         }
                     ]
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false,
+                    maintainAspectRatio: true, // ✅ เปลี่ยนเป็น true
+                    aspectRatio: 2.5, // ✅ เพิ่มอัตราส่วนให้กว้างขึ้น
                     scales: {
                         y: {
                             beginAtZero: true,
+                            max: Math.max(filteredStudents.length, 10),
                             title: {
                                 display: true,
-                                text: 'จำนวนนักเรียน (คน)'
+                                text: 'จำนวนนักเรียน (คน)',
+                                font: {
+                                    size: 12 // ✅ ลดขนาดฟอนต์
+                                }
+                            },
+                            ticks: {
+                                font: {
+                                    size: 10 // ✅ ลดขนาดฟอนต์
+                                }
                             }
                         },
                         x: {
                             title: {
                                 display: true,
-                                text: 'เดือน'
+                                text: 'เดือน',
+                                font: {
+                                    size: 12 // ✅ ลดขนาดฟอนต์
+                                }
+                            },
+                            ticks: {
+                                font: {
+                                    size: 10 // ✅ ลดขนาดฟอนต์
+                                }
                             }
                         }
                     },
@@ -1967,28 +2139,39 @@
                             position: 'top',
                             labels: {
                                 usePointStyle: true,
-                                padding: 15
+                                padding: 15,
+                                font: {
+                                    size: 11 // ✅ ลดขนาดฟอนต์
+                                }
                             }
                         }
+                    },
+                    layout: {
+                        padding: 15 // ✅ เพิ่ม padding
                     }
                 }
             });
+            
+            console.log('Line chart created with data:', { assessedData, riskData, problemData });
         }
 
         function createEmptyCharts() {
             console.log('Creating empty charts...');
             
+            // ลบข้อความ no-data เดิม
+            document.querySelectorAll('.no-data-message').forEach(msg => msg.remove());
+            
             // แสดงข้อความว่าไม่มีข้อมูล
-            const chartContainers = document.querySelectorAll('.chart-container canvas');
-            chartContainers.forEach(canvas => {
-                const container = canvas.parentElement;
-                if (!container.querySelector('.no-data-message')) {
+            const chartContainers = document.querySelectorAll('.chart-container');
+            chartContainers.forEach(container => {
+                const canvas = container.querySelector('canvas');
+                if (canvas && !container.querySelector('.no-data-message')) {
                     const message = document.createElement('div');
                     message.className = 'no-data-message text-center py-8 text-gray-500';
                     message.innerHTML = `
                         <i class="fas fa-chart-bar text-4xl mb-2"></i>
-                        <p>ไม่มีข้อมูลสำหรับแสดงกราฟ</p>
-                        <p class="text-sm">กรุณาประเมินนักเรียนก่อน</p>
+                        <p class="font-medium">ไม่มีข้อมูลสำหรับแสดงกราฟ</p>
+                        <p class="text-sm">กรุณาประเมินนักเรียนก่อนเพื่อดูกราฟ</p>
                     `;
                     container.appendChild(message);
                     canvas.style.display = 'none';
@@ -2108,9 +2291,15 @@
             
             // Load tab-specific data
             if (tabName === 'reports') {
-                updateCharts();
+                // ใช้ setTimeout เพื่อให้ tab แสดงผลก่อน
+                setTimeout(() => {
+                    updateCharts();
+                }, 100);
             } else if (tabName === 'priority') {
                 updatePriorityStudents();
+            } else if (tabName === 'students') {
+                // รีเฟรช student cards
+                displayStudents();
             }
         }
 
@@ -2404,6 +2593,18 @@
                 answers: assessment.answers
             });
         };
+
+        window.addEventListener('resize', function() {
+            if (window.pieChart) {
+                window.pieChart.resize();
+            }
+            if (window.barChart) {
+                window.barChart.resize();
+            }
+            if (window.lineChart) {
+                window.lineChart.resize();
+            }
+        });
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
