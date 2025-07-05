@@ -893,7 +893,8 @@
                         ${assessment ? `
                             <div class="mb-3 text-sm">
                                 <p class="text-gray-600">ประเมินล่าสุด: ${formatDate(assessment.timestamp)}</p>
-                                <p class="text-gray-600">คะแนนรวม: ${assessment.scores.totalDifficulties}/40</p>
+                                <p class="text-gray-600">คะแนนรวม: ${assessment.scores.totalDifficulties || 0}/40</p>
+                                <p class="text-gray-600">ประเมินโดย: ${assessment.evaluatorName || 'ไม่ระบุ'}</p>
                             </div>
                         ` : `
                             <div class="mb-3 text-sm text-gray-500">
@@ -916,6 +917,7 @@
                 </div>
             `;
         }
+
 
             function updateStatistics() {
               const totalStudents = filteredStudents.length;
@@ -960,14 +962,19 @@
         // Assessment Functions
         function createAssessmentQuestions() {
             const container = document.getElementById('questions-container');
-            container.innerHTML = '';
+            if (!container) {
+                console.error('Questions container not found');
+                return;
+            }
+            
+            container.innerHTML = ''; // ล้างเนื้อหาเดิม
             
             SDQ_QUESTIONS.forEach((question, index) => {
                 const questionDiv = document.createElement('div');
                 questionDiv.className = 'question-item';
                 questionDiv.innerHTML = `
                     <div class="flex items-start">
-                        <div class="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-semibold mr-3 mt-1">
+                        <div class="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-semibold mr-3 mt-1 flex-shrink-0">
                             ${index + 1}
                         </div>
                         <div class="flex-1">
@@ -992,11 +999,56 @@
                 container.appendChild(questionDiv);
             });
             
-            // Add event listeners for radio items
-            document.querySelectorAll('.radio-item').forEach(item => {
-                item.addEventListener('click', function() {
-                    const question = this.dataset.question;
-                    const value = this.dataset.value;
+            console.log('Assessment questions created:', SDQ_QUESTIONS.length);
+        }
+        
+        // แก้ไข Event Listener สำหรับการเลือกนักเรียน
+        document.addEventListener('DOMContentLoaded', function() {
+            // Student selection for assessment - แก้ไขให้ทำงานถูกต้อง
+            const studentSelectElement = document.getElementById('student-select');
+            if (studentSelectElement) {
+                studentSelectElement.addEventListener('change', function(e) {
+                    const studentId = e.target.value;
+                    console.log('Student selected for assessment:', studentId);
+                    
+                    if (studentId) {
+                        currentAssessmentStudent = studentId;
+                        
+                        // แสดงส่วนของคำถาม
+                        const questionsSection = document.getElementById('assessment-questions');
+                        if (questionsSection) {
+                            questionsSection.classList.remove('hidden');
+                            
+                            // สร้างคำถามใหม่
+                            createAssessmentQuestions();
+                            
+                            // ล้างคำตอบเดิม
+                            assessmentAnswers = new Array(25).fill(undefined);
+                            
+                            // เพิ่ม progress bar
+                            updateAssessmentProgress();
+                            
+                            console.log('Assessment questions displayed for student:', studentId);
+                        } else {
+                            console.error('Assessment questions section not found');
+                        }
+                    } else {
+                        // ซ่อนส่วนคำถาม
+                        const questionsSection = document.getElementById('assessment-questions');
+                        if (questionsSection) {
+                            questionsSection.classList.add('hidden');
+                        }
+                        currentAssessmentStudent = null;
+                    }
+                });
+            }
+            
+            // เพิ่ม Event Listeners สำหรับ radio buttons
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.radio-item')) {
+                    const radioItem = e.target.closest('.radio-item');
+                    const question = radioItem.dataset.question;
+                    const value = radioItem.dataset.value;
                     
                     // Remove selection from other options in same question
                     document.querySelectorAll(`[data-question="${question}"]`).forEach(option => {
@@ -1005,14 +1057,19 @@
                     });
                     
                     // Select this option
-                    this.classList.add('selected');
-                    this.querySelector('input').checked = true;
+                    radioItem.classList.add('selected');
+                    radioItem.querySelector('input').checked = true;
                     
                     // Update answers array
                     assessmentAnswers[parseInt(question)] = parseInt(value);
-                });
+                    
+                    // Update progress
+                    updateAssessmentProgress();
+                    
+                    console.log(`Question ${question} answered with value ${value}`);
+                }
             });
-        }
+        });
 
         async function saveAssessment() {
             if (!currentAssessmentStudent) {
@@ -1246,14 +1303,63 @@
             if (!dateString) return 'ไม่ทราบ';
             
             try {
-                const date = new Date(dateString);
+                let date;
+                
+                // ตรวจสอบรูปแบบวันที่ต่างๆ
+                if (dateString instanceof Date) {
+                    date = dateString;
+                } else if (typeof dateString === 'string') {
+                    // ลองแปลงวันที่จากรูปแบบต่างๆ
+                    date = new Date(dateString);
+                    
+                    // ถ้าแปลงไม่ได้ ลอง parse รูปแบบไทย
+                    if (isNaN(date.getTime())) {
+                        // ลอง parse รูปแบบ ISO
+                        const isoDate = dateString.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1');
+                        date = new Date(isoDate);
+                    }
+                } else {
+                    // ถ้าเป็น timestamp
+                    date = new Date(Number(dateString));
+                }
+                
+                // ตรวจสอบว่าเป็น valid date หรือไม่
+                if (isNaN(date.getTime())) {
+                    console.warn('Invalid date:', dateString);
+                    return 'วันที่ไม่ถูกต้อง';
+                }
+                
                 return date.toLocaleDateString('th-TH', {
                     year: 'numeric',
                     month: 'short',
                     day: 'numeric'
                 });
+                
             } catch (error) {
-                return 'ไม่ทราบ';
+                console.error('Error formatting date:', error, 'Input:', dateString);
+                return 'วันที่ไม่ถูกต้อง';
+            }
+        }
+
+        function formatDateFull(dateString) {
+            if (!dateString) return 'ไม่ทราบ';
+            
+            try {
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) {
+                    return 'วันที่ไม่ถูกต้อง';
+                }
+                
+                return date.toLocaleDateString('th-TH', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    weekday: 'long'
+                });
+                
+            } catch (error) {
+                console.error('Error formatting full date:', error);
+                return 'วันที่ไม่ถูกต้อง';
             }
         }
 
@@ -1285,9 +1391,301 @@
 
         // Chart Functions (placeholders)
         function updateCharts() {
-            // This would create actual charts using Chart.js
-            // For now, just placeholder
-            console.log('Updating charts...');
+            console.log('Updating charts with assessment data...');
+            
+            // ตรวจสอบว่ามีข้อมูลการประเมินหรือไม่
+            if (!assessmentData || Object.keys(assessmentData).length === 0) {
+                console.log('No assessment data available for charts');
+                createEmptyCharts();
+                return;
+            }
+            
+            try {
+                // 1. Pie Chart - สัดส่วนผลการประเมิน
+                createAssessmentPieChart();
+                
+                // 2. Bar Chart - คะแนนเฉลี่ยแต่ละด้าน
+                createAspectsBarChart();
+                
+                // 3. Line Chart - แนวโน้มการประเมิน
+                createTrendLineChart();
+                
+                console.log('Charts updated successfully');
+                
+            } catch (error) {
+                console.error('Error updating charts:', error);
+                createEmptyCharts();
+            }
+        }
+        
+        function createAssessmentPieChart() {
+            const ctx = document.getElementById('assessment-pie-chart');
+            if (!ctx) {
+                console.error('Assessment pie chart canvas not found');
+                return;
+            }
+            
+            // สร้างข้อมูลจำลองหากไม่มีข้อมูลจริง
+            const normalStudents = filteredStudents.filter(s => {
+                const assessment = getLatestAssessment(s.id);
+                return assessment && getAssessmentStatus(assessment) === 'normal';
+            }).length;
+            
+            const riskStudents = filteredStudents.filter(s => {
+                const assessment = getLatestAssessment(s.id);
+                return assessment && getAssessmentStatus(assessment) === 'risk';
+            }).length;
+            
+            const problemStudents = filteredStudents.filter(s => {
+                const assessment = getLatestAssessment(s.id);
+                return assessment && getAssessmentStatus(assessment) === 'problem';
+            }).length;
+            
+            const notAssessed = filteredStudents.length - normalStudents - riskStudents - problemStudents;
+            
+            // ทำลาย chart เดิม (ถ้ามี)
+            if (window.pieChart) {
+                window.pieChart.destroy();
+            }
+            
+            window.pieChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['ปกติ', 'เสี่ยง', 'มีปัญหา', 'ยังไม่ประเมิน'],
+                    datasets: [{
+                        data: [normalStudents, riskStudents, problemStudents, notAssessed],
+                        backgroundColor: [
+                            '#10b981', // สีเขียว - ปกติ
+                            '#f59e0b', // สีเหลือง - เสี่ยง  
+                            '#ef4444', // สีแดง - มีปัญหา
+                            '#6b7280'  // สีเทา - ยังไม่ประเมิน
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.raw / total) * 100).toFixed(1);
+                                    return `${context.label}: ${context.raw} คน (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function createAspectsBarChart() {
+            const ctx = document.getElementById('aspects-bar-chart');
+            if (!ctx) {
+                console.error('Aspects bar chart canvas not found');
+                return;
+            }
+            
+            // คำนวณคะแนนเฉลี่ยแต่ละด้าน
+            const aspects = ['emotional', 'conduct', 'hyperactivity', 'peerProblems', 'prosocial'];
+            const aspectLabels = ['อารมณ์', 'ความประพฤติ', 'สมาธิ', 'เพื่อน', 'สังคม'];
+            const aspectAverages = [];
+            
+            aspects.forEach(aspect => {
+                const scores = [];
+                filteredStudents.forEach(student => {
+                    const assessment = getLatestAssessment(student.id);
+                    if (assessment && assessment.scores && assessment.scores[aspect] !== undefined) {
+                        scores.push(assessment.scores[aspect]);
+                    }
+                });
+                
+                const average = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+                aspectAverages.push(Number(average.toFixed(1)));
+            });
+            
+            // ทำลาย chart เดิม (ถ้ามี)
+            if (window.barChart) {
+                window.barChart.destroy();
+            }
+            
+            window.barChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: aspectLabels,
+                    datasets: [{
+                        label: 'คะแนนเฉลี่ย',
+                        data: aspectAverages,
+                        backgroundColor: [
+                            '#3b82f6', // อารมณ์
+                            '#10b981', // ความประพฤติ
+                            '#f59e0b', // สมาธิ
+                            '#ef4444', // เพื่อน
+                            '#8b5cf6'  // สังคม
+                        ],
+                        borderColor: [
+                            '#2563eb',
+                            '#059669',
+                            '#d97706',
+                            '#dc2626',
+                            '#7c3aed'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 10,
+                            title: {
+                                display: true,
+                                text: 'คะแนน'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'ด้านการประเมิน'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `คะแนนเฉลี่ย: ${context.raw}/10`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function createTrendLineChart() {
+            const ctx = document.getElementById('trend-line-chart');
+            if (!ctx) {
+                console.error('Trend line chart canvas not found');
+                return;
+            }
+            
+            // สร้างข้อมูลจำลองสำหรับแนวโน้ม (6 เดือนล่าสุด)
+            const months = [];
+            const assessedData = [];
+            const riskData = [];
+            const problemData = [];
+            
+            for (let i = 5; i >= 0; i--) {
+                const date = new Date();
+                date.setMonth(date.getMonth() - i);
+                const monthName = date.toLocaleDateString('th-TH', { month: 'short', year: '2-digit' });
+                months.push(monthName);
+                
+                // จำลองข้อมูล (ในระบบจริงควรดึงจากฐานข้อมูล)
+                assessedData.push(Math.floor(Math.random() * 20) + 10);
+                riskData.push(Math.floor(Math.random() * 5) + 1);
+                problemData.push(Math.floor(Math.random() * 3) + 1);
+            }
+            
+            // ทำลาย chart เดิม (ถ้ามี)
+            if (window.lineChart) {
+                window.lineChart.destroy();
+            }
+            
+            window.lineChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [
+                        {
+                            label: 'นักเรียนที่ประเมินแล้ว',
+                            data: assessedData,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'กลุ่มเสี่ยง',
+                            data: riskData,
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'กลุ่มมีปัญหา',
+                            data: problemData,
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'จำนวนนักเรียน (คน)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'เดือน'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function createEmptyCharts() {
+            console.log('Creating empty charts...');
+            
+            // แสดงข้อความว่าไม่มีข้อมูล
+            const chartContainers = document.querySelectorAll('.chart-container canvas');
+            chartContainers.forEach(canvas => {
+                const container = canvas.parentElement;
+                if (!container.querySelector('.no-data-message')) {
+                    const message = document.createElement('div');
+                    message.className = 'no-data-message text-center py-8 text-gray-500';
+                    message.innerHTML = `
+                        <i class="fas fa-chart-bar text-4xl mb-2"></i>
+                        <p>ไม่มีข้อมูลสำหรับแสดงกราฟ</p>
+                        <p class="text-sm">กรุณาประเมินนักเรียนก่อน</p>
+                    `;
+                    container.appendChild(message);
+                    canvas.style.display = 'none';
+                }
+            });
         }
 
         function updatePriorityStudents() {
@@ -1829,51 +2227,66 @@
                 progressBar.className = 'mb-4';
                 progressBar.innerHTML = `
                     <div class="flex justify-between text-sm text-gray-600 mb-2">
-                        <span>ความคืบหน้า</span>
+                        <span>ความคืบหน้าการประเมิน</span>
                         <span id="progress-text">0/25 ข้อ</span>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-2">
                         <div id="progress-fill" class="bg-blue-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
                     </div>
                 `;
-                document.getElementById('questions-container').parentNode.insertBefore(progressBar, document.getElementById('questions-container'));
+                
+                const container = document.getElementById('questions-container');
+                if (container && container.parentNode) {
+                    container.parentNode.insertBefore(progressBar, container);
+                }
             }
             
-            document.getElementById('progress-text').textContent = `${answeredQuestions}/25 ข้อ`;
-            document.getElementById('progress-fill').style.width = `${progress}%`;
+            const progressText = document.getElementById('progress-text');
+            const progressFill = document.getElementById('progress-fill');
             
-            if (progress === 100) {
-                document.getElementById('progress-fill').className = 'bg-green-500 h-2 rounded-full transition-all duration-300';
+            if (progressText) {
+                progressText.textContent = `${answeredQuestions}/25 ข้อ`;
+            }
+            
+            if (progressFill) {
+                progressFill.style.width = `${progress}%`;
+                
+                if (progress === 100) {
+                    progressFill.className = 'bg-green-500 h-2 rounded-full transition-all duration-300';
+                } else {
+                    progressFill.className = 'bg-blue-500 h-2 rounded-full transition-all duration-300';
+                }
             }
         }
+
         
         // Enhanced radio item click handler with progress tracking
-        document.addEventListener('click', function(e) {
-            if (e.target.closest('.radio-item')) {
-                const radioItem = e.target.closest('.radio-item');
-                const question = radioItem.dataset.question;
-                const value = radioItem.dataset.value;
-                
-                // Remove selection from other options in same question
-                document.querySelectorAll(`[data-question="${question}"]`).forEach(option => {
-                    option.classList.remove('selected');
-                    option.querySelector('input').checked = false;
-                });
-                
-                // Select this option
-                radioItem.classList.add('selected');
-                radioItem.querySelector('input').checked = true;
-                
-                // Update answers array
-                assessmentAnswers[parseInt(question)] = parseInt(value);
-                
-                // Update progress
-                updateAssessmentProgress();
-                
-                // Schedule auto-save
-                scheduleAutoSave();
-            }
-        });
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.radio-item')) {
+            const radioItem = e.target.closest('.radio-item');
+            const question = radioItem.dataset.question;
+            const value = radioItem.dataset.value;
+            
+            // Remove selection from other options in same question
+            document.querySelectorAll(`[data-question="${question}"]`).forEach(option => {
+                option.classList.remove('selected');
+                option.querySelector('input').checked = false;
+            });
+            
+            // Select this option
+            radioItem.classList.add('selected');
+            radioItem.querySelector('input').checked = true;
+            
+            // Update answers array
+            assessmentAnswers[parseInt(question)] = parseInt(value);
+            
+            // Update progress
+            updateAssessmentProgress();
+            
+            console.log(`Question ${question} answered with value ${value}`);
+        }
+    });
+});
         
         console.log('🎓 Teacher Dashboard initialized successfully!');
     </script>
