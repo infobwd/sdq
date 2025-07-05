@@ -1,1 +1,781 @@
-ก
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>ระบบประเมินพฤติกรรมนักเรียน SDQ</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Thai Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        body { 
+            font-family: 'Sarabun', sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .nav-container {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .page-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+        }
+        
+        .page-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 35px rgba(0, 0, 0, 0.15);
+        }
+        
+        .page-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .feature-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin: 0.25rem;
+        }
+        
+        .badge-new { background: linear-gradient(135deg, #10b981, #059669); color: white; }
+        .badge-core { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; }
+        .badge-admin { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
+        .badge-mobile { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; }
+        
+        .btn-navigate {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 0.75rem;
+            font-weight: 500;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-navigate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+            color: white;
+            text-decoration: none;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+            color: white;
+            text-decoration: none;
+        }
+        
+        .user-info {
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 12px;
+            padding: 1rem;
+        }
+        
+        .quick-action {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .quick-action:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            transform: translateY(-2px);
+        }
+        
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .status-ready { background: #dcfce7; color: #166534; }
+        .status-development { background: #fef3c7; color: #92400e; }
+        .status-beta { background: #ddd6fe; color: #5b21b6; }
+        
+        @media (max-width: 768px) {
+            .page-card {
+                margin-bottom: 1rem;
+            }
+            
+            .grid-pages {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen p-4">
+        <!-- Header -->
+        <div class="nav-container max-w-7xl mx-auto mb-8 p-6">
+            <div class="page-header mb-6">
+                <img src="https://img2.pic.in.th/pic/bf40fa04101a0ceceabc02eed1d0cc00.png" 
+                     class="h-20 mx-auto mb-4" alt="โลโก้โรงเรียน" />
+                <h1 class="text-3xl font-bold mb-2">ระบบประเมินพฤติกรรมนักเรียน SDQ</h1>
+                <p class="text-lg text-blue-100">Navigation Hub - เลือกหน้าที่ต้องการใช้งาน</p>
+            </div>
+
+            <!-- User Status (if logged in) -->
+            <div id="user-status" class="user-info mb-6 hidden">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="font-semibold text-gray-800">ผู้ใช้งานปัจจุบัน</h3>
+                        <p class="text-sm text-gray-600">
+                            <i class="fas fa-user mr-2"></i>
+                            <span id="current-user-name">-</span>
+                            (<span id="current-user-role">-</span>)
+                        </p>
+                    </div>
+                    <button id="logout-btn" class="btn-secondary text-sm">
+                        <i class="fas fa-sign-out-alt"></i>ออกจากระบบ
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="quick-action" onclick="goToLogin()">
+                    <i class="fas fa-sign-in-alt text-2xl text-blue-500 mb-2"></i>
+                    <p class="font-medium">เข้าสู่ระบบ</p>
+                </div>
+                <div class="quick-action" onclick="goToAssessment()">
+                    <i class="fas fa-clipboard-check text-2xl text-green-500 mb-2"></i>
+                    <p class="font-medium">ทำแบบประเมิน</p>
+                </div>
+                <div class="quick-action" onclick="goToResults()">
+                    <i class="fas fa-chart-bar text-2xl text-purple-500 mb-2"></i>
+                    <p class="font-medium">ดูผลประเมิน</p>
+                </div>
+                <div class="quick-action" onclick="goToUserManagement()">
+                    <i class="fas fa-users-cog text-2xl text-red-500 mb-2"></i>
+                    <p class="font-medium">จัดการผู้ใช้</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pages Grid -->
+        <div class="nav-container max-w-7xl mx-auto p-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">🗂️ หน้าต่างๆ ในระบบ</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 grid-pages">
+                
+                <!-- Index.html -->
+                <div class="page-card">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-xl font-bold text-gray-800">📊 หน้าหลักระบบ</h3>
+                            <span class="status-indicator status-ready">
+                                <i class="fas fa-check-circle mr-1"></i>พร้อมใช้งาน
+                            </span>
+                        </div>
+                        
+                        <p class="text-gray-600 mb-4">
+                            หน้าหลักของระบบประเมิน SDQ พร้อมฟีเจอร์ครบครัน
+                        </p>
+                        
+                        <div class="mb-4">
+                            <span class="feature-badge badge-core">
+                                <i class="fas fa-mobile-alt mr-1"></i>Mobile-First
+                            </span>
+                            <span class="feature-badge badge-core">
+                                <i class="fas fa-chart-bar mr-1"></i>Assessment
+                            </span>
+                            <span class="feature-badge badge-core">
+                                <i class="fas fa-file-excel mr-1"></i>Excel Import
+                            </span>
+                        </div>
+                        
+                        <div class="space-y-2 mb-4 text-sm">
+                            <p><i class="fas fa-check text-green-500 mr-2"></i>ระบบประเมิน SDQ 25 ข้อ</p>
+                            <p><i class="fas fa-check text-green-500 mr-2"></i>รายงานผล + กราฟ</p>
+                            <p><i class="fas fa-check text-green-500 mr-2"></i>นำเข้าข้อมูลจาก Excel</p>
+                            <p><i class="fas fa-check text-green-500 mr-2"></i>พิมพ์รายงาน</p>
+                        </div>
+                        
+                        <div class="flex gap-2">
+                            <a href="index.html" class="btn-navigate flex-1 justify-center">
+                                <i class="fas fa-external-link-alt"></i>เปิดหน้าหลัก
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Login.html -->
+                <div class="page-card">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-xl font-bold text-gray-800">🔑 ระบบล็อกอิน</h3>
+                            <span class="status-indicator status-ready">
+                                <i class="fas fa-check-circle mr-1"></i>พร้อมใช้งาน
+                            </span>
+                        </div>
+                        
+                        <p class="text-gray-600 mb-4">
+                            ระบบเข้าสู่ระบบพร้อม Role-based Access Control
+                        </p>
+                        
+                        <div class="mb-4">
+                            <span class="feature-badge badge-new">
+                                <i class="fas fa-shield-alt mr-1"></i>RBAC
+                            </span>
+                            <span class="feature-badge badge-new">
+                                <i class="fas fa-calendar-alt mr-1"></i>Academic Year
+                            </span>
+                            <span class="feature-badge badge-mobile">
+                                <i class="fas fa-mobile-alt mr-1"></i>Mobile UI
+                            </span>
+                        </div>
+                        
+                        <div class="space-y-2 mb-4 text-sm">
+                            <p><i class="fas fa-check text-green-500 mr-2"></i>4 ระดับผู้ใช้ (Admin, School Admin, Teacher, Parent)</p>
+                            <p><i class="fas fa-check text-green-500 mr-2"></i>Session Management</p>
+                            <p><i class="fas fa-check text-green-500 mr-2"></i>จัดการปีการศึกษา</p>
+                            <p><i class="fas fa-check text-green-500 mr-2"></i>Dashboard แยกตาม Role</p>
+                        </div>
+                        
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                            <p class="text-xs text-yellow-800">
+                                <i class="fas fa-key mr-1"></i>
+                                <strong>Demo:</strong> admin / admin123
+                            </p>
+                        </div>
+                        
+                        <div class="flex gap-2">
+                            <a href="login.html" class="btn-navigate flex-1 justify-center">
+                                <i class="fas fa-sign-in-alt"></i>เข้าสู่ระบบ
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- UserManage.html -->
+                <div class="page-card">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-xl font-bold text-gray-800">👥 จัดการผู้ใช้</h3>
+                            <span class="status-indicator status-ready">
+                                <i class="fas fa-check-circle mr-1"></i>พร้อมใช้งาน
+                            </span>
+                        </div>
+                        
+                        <p class="text-gray-600 mb-4">
+                            หน้าจัดการผู้ใช้งาน สำหรับ Admin และ School Admin
+                        </p>
+                        
+                        <div class="mb-4">
+                            <span class="feature-badge badge-admin">
+                                <i class="fas fa-crown mr-1"></i>Admin Only
+                            </span>
+                            <span class="feature-badge badge-new">
+                                <i class="fas fa-users-cog mr-1"></i>User CRUD
+                            </span>
+                            <span class="feature-badge badge-new">
+                                <i class="fas fa-search mr-1"></i>Search & Filter
+                            </span>
+                        </div>
+                        
+                        <div class="space-y-2 mb-4 text-sm">
+                            <p><i class="fas fa-check text-green-500 mr-2"></i>เพิ่ม/แก้ไข/ลบ ผู้ใช้</p>
+                            <p><i class="fas fa-check text-green-500 mr-2"></i>มอบหมายชั้นเรียนให้ครู</p>
+                            <p><i class="fas fa-check text-green-500 mr-2"></i>เชื่อมโยงผู้ปกครอง-ลูก</p>
+                            <p><i class="fas fa-check text-green-500 mr-2"></i>สถิติผู้ใช้งาน</p>
+                        </div>
+                        
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                            <p class="text-xs text-red-800">
+                                <i class="fas fa-exclamation-triangle mr-1"></i>
+                                ต้องล็อกอินด้วยสิทธิ์ Admin
+                            </p>
+                        </div>
+                        
+                        <div class="flex gap-2">
+                            <a href="usermanage.html" class="btn-navigate flex-1 justify-center">
+                                <i class="fas fa-users-cog"></i>จัดการผู้ใช้
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Coming Soon: Teacher Dashboard -->
+                <div class="page-card opacity-75">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-xl font-bold text-gray-800">👩‍🏫 Dashboard ครู</h3>
+                            <span class="status-indicator status-development">
+                                <i class="fas fa-code mr-1"></i>กำลังพัฒนา
+                            </span>
+                        </div>
+                        
+                        <p class="text-gray-600 mb-4">
+                            หน้าจอพิเศษสำหรับครู เพื่อจัดการนักเรียนและการประเมิน
+                        </p>
+                        
+                        <div class="mb-4">
+                            <span class="feature-badge badge-core">
+                                <i class="fas fa-chalkboard-teacher mr-1"></i>Teacher Role
+                            </span>
+                            <span class="feature-badge badge-new">
+                                <i class="fas fa-clipboard-list mr-1"></i>Quick Assessment
+                            </span>
+                        </div>
+                        
+                        <div class="space-y-2 mb-4 text-sm text-gray-500">
+                            <p><i class="fas fa-clock text-yellow-500 mr-2"></i>รายชื่อนักเรียนในชั้น</p>
+                            <p><i class="fas fa-clock text-yellow-500 mr-2"></i>ประเมิน SDQ แบบเร็ว</p>
+                            <p><i class="fas fa-clock text-yellow-500 mr-2"></i>ดูประวัติการประเมิน</p>
+                            <p><i class="fas fa-clock text-yellow-500 mr-2"></i>รายงานสรุปรายชั้น</p>
+                        </div>
+                        
+                        <div class="flex gap-2">
+                            <button class="btn-secondary flex-1 justify-center opacity-50 cursor-not-allowed">
+                                <i class="fas fa-hourglass-half"></i>Coming Soon
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Coming Soon: Parent Dashboard -->
+                <div class="page-card opacity-75">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-xl font-bold text-gray-800">👨‍👩‍👧‍👦 Dashboard ผู้ปกครอง</h3>
+                            <span class="status-indicator status-development">
+                                <i class="fas fa-code mr-1"></i>กำลังพัฒนา
+                            </span>
+                        </div>
+                        
+                        <p class="text-gray-600 mb-4">
+                            หน้าจอสำหรับผู้ปกครอง ติดตามพัฒนาการบุตรหลาน
+                        </p>
+                        
+                        <div class="mb-4">
+                            <span class="feature-badge badge-core">
+                                <i class="fas fa-users mr-1"></i>Parent Role
+                            </span>
+                            <span class="feature-badge badge-new">
+                                <i class="fas fa-heart mr-1"></i>Child Tracking
+                            </span>
+                        </div>
+                        
+                        <div class="space-y-2 mb-4 text-sm text-gray-500">
+                            <p><i class="fas fa-clock text-yellow-500 mr-2"></i>ข้อมูลบุตรหลาน</p>
+                            <p><i class="fas fa-clock text-yellow-500 mr-2"></i>ประเมิน SDQ บุตรหลาน</p>
+                            <p><i class="fas fa-clock text-yellow-500 mr-2"></i>ดูผลการประเมิน</p>
+                            <p><i class="fas fa-clock text-yellow-500 mr-2"></i>แนวทางช่วยเหลือ</p>
+                        </div>
+                        
+                        <div class="flex gap-2">
+                            <button class="btn-secondary flex-1 justify-center opacity-50 cursor-not-allowed">
+                                <i class="fas fa-hourglass-half"></i>Coming Soon
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Coming Soon: Reports -->
+                <div class="page-card opacity-75">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-xl font-bold text-gray-800">📈 รายงานขั้นสูง</h3>
+                            <span class="status-indicator status-beta">
+                                <i class="fas fa-flask mr-1"></i>Beta
+                            </span>
+                        </div>
+                        
+                        <p class="text-gray-600 mb-4">
+                            รายงานและการวิเคราะห์ขั้นสูง พร้อม AI Insights
+                        </p>
+                        
+                        <div class="mb-4">
+                            <span class="feature-badge badge-new">
+                                <i class="fas fa-robot mr-1"></i>AI Analysis
+                            </span>
+                            <span class="feature-badge badge-new">
+                                <i class="fas fa-chart-line mr-1"></i>Trends
+                            </span>
+                        </div>
+                        
+                        <div class="space-y-2 mb-4 text-sm text-gray-500">
+                            <p><i class="fas fa-clock text-yellow-500 mr-2"></i>รายงานแบบ Interactive</p>
+                            <p><i class="fas fa-clock text-yellow-500 mr-2"></i>การวิเคราะห์แนวโน้ม</p>
+                            <p><i class="fas fa-clock text-yellow-500 mr-2"></i>AI แนะนำการช่วยเหลือ</p>
+                            <p><i class="fas fa-clock text-yellow-500 mr-2"></i>Export รายงานหลากรูปแบบ</p>
+                        </div>
+                        
+                        <div class="flex gap-2">
+                            <button class="btn-secondary flex-1 justify-center opacity-50 cursor-not-allowed">
+                                <i class="fas fa-hourglass-half"></i>In Development
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Footer Info -->
+        <div class="nav-container max-w-7xl mx-auto mt-8 p-6">
+            <div class="text-center">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">ℹ️ ข้อมูลการใช้งาน</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                        <h4 class="font-semibold text-blue-800 mb-2">🎯 วัตถุประสงค์</h4>
+                        <p class="text-blue-700">
+                            ระบบประเมินพฤติกรรมนักเรียนตามมาตรฐาน SDQ 
+                            เพื่อคัดกรองและช่วยเหลือนักเรียนที่มีปัญหา
+                        </p>
+                    </div>
+                    
+                    <div class="bg-green-50 p-4 rounded-lg border border-green-200">
+                        <h4 class="font-semibold text-green-800 mb-2">👥 ผู้ใช้งาน</h4>
+                        <p class="text-green-700">
+                            นักเรียน, ครู, ผู้ปกครอง, ผู้บริหารโรงเรียน
+                            แต่ละคนมีสิทธิ์และหน้าที่แตกต่างกัน
+                        </p>
+                    </div>
+                    
+                    <div class="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                        <h4 class="font-semibold text-purple-800 mb-2">🚀 เทคโนโลยี</h4>
+                        <p class="text-purple-700">
+                            HTML5, Tailwind CSS, SweetAlert2, Google Apps Script
+                            รองรับมือถือและทุกอุปกรณ์
+                        </p>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-4 border-t border-gray-200">
+                    <p class="text-gray-600 text-sm">
+                        © 2024 ระบบประเมินพฤติกรรมนักเรียน SDQ - 
+                        <span class="font-medium">GitHub Version</span> |
+                        พัฒนาเพื่อการศึกษา
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ตรวจสอบสถานะล็อกอินเมื่อโหลดหน้า
+        document.addEventListener('DOMContentLoaded', function() {
+            checkUserStatus();
+        });
+
+        // ตรวจสอบว่าผู้ใช้ล็อกอินอยู่หรือไม่
+        function checkUserStatus() {
+            const userData = localStorage.getItem('sdq_user') || sessionStorage.getItem('sdq_user');
+            
+            if (userData) {
+                try {
+                    const user = JSON.parse(userData);
+                    showUserStatus(user);
+                } catch (e) {
+                    console.error('Error parsing user data:', e);
+                    clearUserSession();
+                }
+            } else {
+                hideUserStatus();
+            }
+        }
+
+        // แสดงสถานะผู้ใช้
+        function showUserStatus(user) {
+            const userStatus = document.getElementById('user-status');
+            const userName = document.getElementById('current-user-name');
+            const userRole = document.getElementById('current-user-role');
+            
+            if (userStatus && userName && userRole) {
+                userStatus.classList.remove('hidden');
+                userName.textContent = user.name || user.username || 'ไม่ระบุชื่อ';
+                userRole.textContent = getRoleDisplayName(user.role);
+            }
+        }
+
+        // ซ่อนสถานะผู้ใช้
+        function hideUserStatus() {
+            const userStatus = document.getElementById('user-status');
+            if (userStatus) {
+                userStatus.classList.add('hidden');
+            }
+        }
+
+        // แปลงชื่อ Role เป็นภาษาไทย
+        function getRoleDisplayName(role) {
+            const roleMap = {
+                'SUPER_ADMIN': 'ผู้ดูแลระบบหลัก',
+                'SCHOOL_ADMIN': 'ผู้ดูแลโรงเรียน',
+                'TEACHER': 'ครู',
+                'PARENT': 'ผู้ปกครอง',
+                'STUDENT': 'นักเรียน'
+            };
+            return roleMap[role] || role;
+        }
+
+        // ล้างข้อมูล Session
+        function clearUserSession() {
+            localStorage.removeItem('sdq_user');
+            sessionStorage.removeItem('sdq_user');
+            hideUserStatus();
+        }
+
+        // จัดการการออกจากระบบ
+        document.addEventListener('DOMContentLoaded', function() {
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function() {
+                    Swal.fire({
+                        title: 'ยืนยันการออกจากระบบ',
+                        text: 'คุณต้องการออกจากระบบใช่หรือไม่?',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonColor: '#ef4444',
+                        cancelButtonColor: '#6b7280',
+                        confirmButtonText: 'ออกจากระบบ',
+                        cancelButtonText: 'ยกเลิก'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            clearUserSession();
+                            Swal.fire({
+                                title: 'ออกจากระบบสำเร็จ',
+                                text: 'ขอบคุณที่ใช้บริการ',
+                                icon: 'success',
+                                timer: 1500,
+                                showConfirmButton: false
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        }
+                    });
+                });
+            }
+        });
+
+        // Global functions for quick actions
+        function goToLogin() {
+            const userData = localStorage.getItem('sdq_user') || sessionStorage.getItem('sdq_user');
+            if (userData) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'คุณล็อกอินอยู่แล้ว',
+                    text: 'คุณได้เข้าสู่ระบบแล้ว หากต้องการเปลี่ยนผู้ใช้ กรุณาออกจากระบบก่อน',
+                    confirmButtonText: 'ตกลง',
+                    confirmButtonColor: '#3b82f6'
+                });
+            } else {
+                window.location.href = 'login.html';
+            }
+        }
+
+        function goToAssessment() {
+            // Check if user is logged in
+            const userData = localStorage.getItem('sdq_user') || sessionStorage.getItem('sdq_user');
+            if (userData) {
+                try {
+                    const user = JSON.parse(userData);
+                    if (user.role === 'TEACHER') {
+                        window.location.href = 'index.html#teacher';
+                    } else if (user.role === 'PARENT') {
+                        window.location.href = 'index.html#parent';
+                    } else {
+                        window.location.href = 'index.html#student';
+                    }
+                } catch (e) {
+                    console.error('Error parsing user data:', e);
+                    clearUserSession();
+                    goToLoginPrompt();
+                }
+            } else {
+                goToLoginPrompt();
+            }
+        }
+
+        function goToResults() {
+            const userData = localStorage.getItem('sdq_user') || sessionStorage.getItem('sdq_user');
+            if (userData) {
+                window.location.href = 'index.html#results';
+            } else {
+                goToLoginPrompt();
+            }
+        }
+
+        function goToUserManagement() {
+            // Check if user has admin privileges
+            const userData = localStorage.getItem('sdq_user') || sessionStorage.getItem('sdq_user');
+            if (userData) {
+                try {
+                    const user = JSON.parse(userData);
+                    if (user.role === 'SUPER_ADMIN' || user.role === 'SCHOOL_ADMIN') {
+                        window.location.href = 'usermanage.html';
+                    } else {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'ไม่มีสิทธิ์เข้าถึง',
+                            text: 'ฟีเจอร์นี้สำหรับผู้ดูแลระบบเท่านั้น',
+                            confirmButtonText: 'ตกลง',
+                            confirmButtonColor: '#ef4444'
+                        });
+                    }
+                } catch (e) {
+                    console.error('Error parsing user data:', e);
+                    clearUserSession();
+                    goToLoginPrompt();
+                }
+            } else {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'ต้องเข้าสู่ระบบก่อน',
+                    text: 'กรุณาเข้าสู่ระบบด้วยสิทธิ์ผู้ดูแลระบบ',
+                    confirmButtonText: 'เข้าสู่ระบบ',
+                    confirmButtonColor: '#3b82f6'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = 'login.html';
+                    }
+                });
+            }
+        }
+
+        // แสดง Prompt ให้เข้าสู่ระบบ
+        function goToLoginPrompt() {
+            Swal.fire({
+                icon: 'info',
+                title: 'ต้องเข้าสู่ระบบก่อน',
+                text: 'กรุณาเข้าสู่ระบบเพื่อใช้งานฟีเจอร์นี้',
+                confirmButtonText: 'เข้าสู่ระบบ',
+                cancelButtonText: 'ยกเลิก',
+                showCancelButton: true,
+                confirmButtonColor: '#3b82f6',
+                cancelButtonColor: '#6b7280'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = 'login.html';
+                }
+            });
+        }
+
+        // ฟังก์ชันเพิ่มเติมสำหรับการนำทาง
+        function navigateToPage(page, requireAuth = false, requiredRoles = []) {
+            if (requireAuth) {
+                const userData = localStorage.getItem('sdq_user') || sessionStorage.getItem('sdq_user');
+                if (!userData) {
+                    goToLoginPrompt();
+                    return;
+                }
+
+                if (requiredRoles.length > 0) {
+                    try {
+                        const user = JSON.parse(userData);
+                        if (!requiredRoles.includes(user.role)) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'ไม่มีสิทธิ์เข้าถึง',
+                                text: 'คุณไม่มีสิทธิ์เข้าใช้หน้านี้',
+                                confirmButtonText: 'ตกลง',
+                                confirmButtonColor: '#ef4444'
+                            });
+                            return;
+                        }
+                    } catch (e) {
+                        console.error('Error parsing user data:', e);
+                        clearUserSession();
+                        goToLoginPrompt();
+                        return;
+                    }
+                }
+            }
+
+            window.location.href = page;
+        }
+
+        // เพิ่มการ handle ข้อผิดพลาด
+        window.addEventListener('error', function(e) {
+            console.error('JavaScript Error:', e.error);
+        });
+
+        // เพิ่มการตรวจสอบ Network Status
+        window.addEventListener('online', function() {
+            console.log('Network connection restored');
+        });
+
+        window.addEventListener('offline', function() {
+            Swal.fire({
+                icon: 'warning',
+                title: 'ไม่มีการเชื่อมต่ออินเทอร์เน็ต',
+                text: 'กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต',
+                confirmButtonText: 'ตกลง',
+                confirmButtonColor: '#f59e0b'
+            });
+        });
+
+        // ป้องกันการ submit form หลายครั้ง
+        function preventDoubleSubmit(element) {
+            if (element.disabled) return false;
+            element.disabled = true;
+            setTimeout(() => {
+                element.disabled = false;
+            }, 2000);
+            return true;
+        }
+
+        // เพิ่ม Service Worker สำหรับ PWA (ถ้าต้องการ)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                // navigator.serviceWorker.register('/sw.js'); // uncomment if you have service worker
+            });
+        }
+    </script>
+</body>
+</html>
