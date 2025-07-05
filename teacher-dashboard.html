@@ -714,60 +714,97 @@
 
         // Data Loading Functions
         async function loadStudents() {
-            try {
-                showLoading(true, "กำลังโหลดข้อมูลนักเรียน...");
-                
-                const response = await makeJSONPRequest('getStudentsForUser', {
-                    sessionId: currentSession,
-                    academicYear: new Date().getFullYear() + 543 // ปีปัจจุบัน
-                });
-                
-                if (response && response.success) {
-                    allStudents = response.students || [];
-                    updateClassSelector();
-                    filterStudentsByClass();
-                    updateStatistics();
-                    populateStudentSelect();
-                } else {
-                    if (response && response.message === 'Session หมดอายุ') {
-                        redirectToLogin();
-                        return;
-                    }
-                    allStudents = [];
-                    updateStatistics();
-                }
-                
-                showLoading(false);
-                
-            } catch (error) {
-                showLoading(false);
-                showError(`ไม่สามารถโหลดข้อมูลนักเรียนได้: ${error.message}`);
-                console.error('Load students error:', error);
+          try {
+            showLoading(true, "กำลังโหลดข้อมูลนักเรียน...");
+            
+            const response = await makeJSONPRequest('getStudentsForUser', {
+              sessionId: currentSession,
+              academicYear: new Date().getFullYear() + 543
+            });
+            
+            if (response && response.success) {
+              allStudents = response.students || [];
+              updateClassSelector();
+              filterStudentsByClass();
+              
+              // โหลดข้อมูลการประเมินหลังจากได้รายชื่อนักเรียน
+              await loadAssessmentData();
+              
+              updateStatistics();
+              populateStudentSelect();
+            } else {
+              if (response && response.message === 'Session หมดอายุ') {
+                redirectToLogin();
+                return;
+              }
+              allStudents = [];
+              updateStatistics();
             }
+            
+            showLoading(false);
+            
+          } catch (error) {
+            showLoading(false);
+            showError(`ไม่สามารถโหลดข้อมูลนักเรียนได้: ${error.message}`);
+            console.error('Load students error:', error);
+          }
         }
 
         async function loadAssessmentData() {
-            try {
-                const response = await makeJSONPRequest('getSummaryResultsForUser', {
-                    sessionId: currentSession,
-                    classFilter: currentClass || 'all',
-                    evaluatorTypeFilter: 'teacher',
-                    aspectFilter: 'all'
+          try {
+            console.log('Loading assessment data...');
+            
+            const response = await makeJSONPRequest('getSummaryResultsForUser', {
+              sessionId: currentSession,
+              classFilter: currentClass || 'all',
+              evaluatorTypeFilter: 'all', // เปลี่ยนจาก 'teacher' เป็น 'all'
+              aspectFilter: 'all'
+            });
+            
+            if (response && response.success) {
+              assessmentData = response.data || {};
+              
+              // โหลดข้อมูลการประเมินรายบุคคลด้วย
+              await loadIndividualAssessments();
+              
+              updateStatistics();
+              updateCharts();
+              updatePriorityStudents();
+            } else if (response && response.message === 'Session หมดอายุ') {
+              redirectToLogin();
+            }
+            
+          } catch (error) {
+            console.error('Load assessment data error:', error);
+          }
+        }
+
+        async function loadIndividualAssessments() {
+          try {
+            const assessmentPromises = filteredStudents.map(async (student) => {
+              try {
+                const response = await makeJSONPRequest('getAssessmentResultsForUser', {
+                  sessionId: currentSession,
+                  studentId: student.id,
+                  evaluatorType: 'all'
                 });
                 
-                if (response && response.success) {
-                    assessmentData = response.data || {};
-                    updateStatistics();
-                    updateCharts();
-                    updatePriorityStudents();
-                } else if (response && response.message === 'Session หมดอายุ') {
-                    redirectToLogin();
+                if (response && response.success && response.data) {
+                  // เก็บข้อมูลการประเมินไว้ใน student object
+                  student.latestAssessment = response.data;
                 }
-                
-            } catch (error) {
-                console.error('Load assessment data error:', error);
-            }
+              } catch (error) {
+                console.error(`Error loading assessment for student ${student.id}:`, error);
+              }
+            });
+            
+            await Promise.all(assessmentPromises);
+            console.log('Individual assessments loaded');
+          } catch (error) {
+            console.error('Error loading individual assessments:', error);
+          }
         }
+
 
         // UI Update Functions
         function updateClassSelector() {
@@ -880,23 +917,33 @@
             `;
         }
 
-        function updateStatistics() {
-            const totalStudents = filteredStudents.length;
-            const assessedStudents = filteredStudents.filter(s => getLatestAssessment(s.id)).length;
-            const riskStudents = filteredStudents.filter(s => {
-                const assessment = getLatestAssessment(s.id);
-                return assessment && getAssessmentStatus(assessment) === 'risk';
-            }).length;
-            const problemStudents = filteredStudents.filter(s => {
-                const assessment = getLatestAssessment(s.id);
-                return assessment && getAssessmentStatus(assessment) === 'problem';
-            }).length;
-            
-            document.getElementById('total-students').textContent = totalStudents;
-            document.getElementById('assessed-students').textContent = assessedStudents;
-            document.getElementById('risk-students').textContent = riskStudents;
-            document.getElementById('problem-students').textContent = problemStudents;
-        }
+            function updateStatistics() {
+              const totalStudents = filteredStudents.length;
+              
+              let assessedStudents = 0;
+              let riskStudents = 0;
+              let problemStudents = 0;
+              
+              filteredStudents.forEach(student => {
+                const assessment = getLatestAssessment(student.id);
+                
+                if (assessment) {
+                  assessedStudents++;
+                  const status = getAssessmentStatus(assessment);
+                  
+                  if (status === 'risk') {
+                    riskStudents++;
+                  } else if (status === 'problem') {
+                    problemStudents++;
+                  }
+                }
+              });
+              
+              document.getElementById('total-students').textContent = totalStudents;
+              document.getElementById('assessed-students').textContent = assessedStudents;
+              document.getElementById('risk-students').textContent = riskStudents;
+              document.getElementById('problem-students').textContent = problemStudents;
+            }
 
         function populateStudentSelect() {
             const select = document.getElementById('student-select');
@@ -1156,10 +1203,9 @@
         }
 
         // Helper Functions
-        function getLatestAssessment(studentId) {
-            // This would normally come from the server
-            // For now, return null as placeholder
-            return null;
+    function getLatestAssessment(studentId) {
+          const student = allStudents.find(s => s.id === studentId);
+          return student ? student.latestAssessment : null;
         }
 
         function getAssessmentStatus(assessment) {
@@ -1245,59 +1291,94 @@
         }
 
         function updatePriorityStudents() {
-            const container = document.getElementById('priority-students');
-            const emptyState = document.getElementById('priority-empty');
+          const container = document.getElementById('priority-students');
+          const emptyState = document.getElementById('priority-empty');
+          
+          // กรองนักเรียนที่ต้องดูแลเป็นพิเศษ
+          const priorityStudents = filteredStudents.filter(student => {
+            const assessment = getLatestAssessment(student.id);
+            if (!assessment) return false;
             
-            // Filter students who need special attention
-            const priorityStudents = filteredStudents.filter(student => {
-                const assessment = getLatestAssessment(student.id);
-                return assessment && (getAssessmentStatus(assessment) === 'risk' || getAssessmentStatus(assessment) === 'problem');
-            });
+            const status = getAssessmentStatus(assessment);
+            return status === 'risk' || status === 'problem';
+          });
+          
+          if (priorityStudents.length === 0) {
+            container.classList.add('hidden');
+            emptyState.classList.remove('hidden');
+            return;
+          }
+          
+          container.classList.remove('hidden');
+          emptyState.classList.add('hidden');
+          
+          container.innerHTML = priorityStudents.map(student => {
+            const assessment = getLatestAssessment(student.id);
+            const status = getAssessmentStatus(assessment);
+            const statusInfo = getStatusInfo(status);
             
-            if (priorityStudents.length === 0) {
-                container.classList.add('hidden');
-                emptyState.classList.remove('hidden');
-                return;
+            // สร้างรายการด้านที่มีปัญหา
+            const problemAspects = [];
+            
+            if (assessment.interpretations.emotional !== 'ปกติ') {
+              problemAspects.push('ด้านอารมณ์');
+            }
+            if (assessment.interpretations.conduct !== 'ปกติ') {
+              problemAspects.push('ด้านความประพฤติ');
+            }
+            if (assessment.interpretations.hyperactivity !== 'ปกติ') {
+              problemAspects.push('ด้านสมาธิ');
+            }
+            if (assessment.interpretations.peerProblems !== 'ปกติ') {
+              problemAspects.push('ด้านเพื่อน');
+            }
+            if (assessment.interpretations.prosocial !== 'ปกติ' && assessment.interpretations.prosocial !== 'จุดแข็ง') {
+              problemAspects.push('ด้านสังคม');
             }
             
-            container.classList.remove('hidden');
-            emptyState.classList.add('hidden');
-            
-            container.innerHTML = priorityStudents.map(student => {
-                const assessment = getLatestAssessment(student.id);
-                const status = getAssessmentStatus(assessment);
-                const statusInfo = getStatusInfo(status);
-                
-                return `
-                    <div class="bg-white p-4 rounded-lg border-l-4 ${status === 'problem' ? 'border-red-500' : 'border-yellow-500'}">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-4">
-                                <div class="w-12 h-12 bg-gradient-to-br from-red-500 to-pink-600 rounded-full flex items-center justify-center">
-                                    <i class="fas fa-user-graduate text-white"></i>
-                                </div>
-                                <div>
-                                    <h4 class="font-semibold text-gray-800">${student.name}</h4>
-                                    <p class="text-sm text-gray-600">${student.class}</p>
-                                    <p class="text-sm text-gray-500">คะแนนรวม: ${assessment.scores.totalDifficulties}/40</p>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <span class="status-badge status-${status} mb-2 block">
-                                    <i class="${statusInfo.icon} mr-1"></i>${statusInfo.label}
-                                </span>
-                                <div class="flex gap-2">
-                                    <button onclick="viewResults('${student.id}')" class="btn-secondary text-xs">
-                                        <i class="fas fa-eye mr-1"></i>ดูผล
-                                    </button>
-                                    <button onclick="assessStudent('${student.id}')" class="btn-success text-xs">
-                                        <i class="fas fa-clipboard-check mr-1"></i>ประเมินใหม่
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+            return `
+              <div class="bg-white p-4 rounded-lg border-l-4 ${status === 'problem' ? 'border-red-500' : 'border-yellow-500'} shadow-sm">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-gradient-to-br ${status === 'problem' ? 'from-red-500 to-pink-600' : 'from-yellow-500 to-orange-600'} rounded-full flex items-center justify-center">
+                      <i class="fas fa-user-graduate text-white"></i>
                     </div>
-                `;
-            }).join('');
+                    <div>
+                      <h4 class="font-semibold text-gray-800">${student.name}</h4>
+                      <p class="text-sm text-gray-600">${student.class}</p>
+                      <p class="text-sm text-gray-500">คะแนนรวม: ${assessment.scores.totalDifficulties}/40</p>
+                      ${problemAspects.length > 0 ? `<p class="text-xs text-red-600 mt-1">⚠️ ${problemAspects.join(', ')}</p>` : ''}
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <span class="status-badge status-${status} mb-2 block">
+                      <i class="${statusInfo.icon} mr-1"></i>${statusInfo.label}
+                    </span>
+                    <div class="flex gap-2">
+                      <button onclick="viewResults('${student.id}')" class="btn-secondary text-xs">
+                        <i class="fas fa-eye mr-1"></i>ดูผล
+                      </button>
+                      <button onclick="assessStudent('${student.id}')" class="btn-success text-xs">
+                        <i class="fas fa-clipboard-check mr-1"></i>ประเมินใหม่
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="mt-3 p-3 bg-gray-50 rounded-lg">
+                  <h5 class="text-sm font-medium text-gray-700 mb-2">รายละเอียดการประเมิน:</h5>
+                  <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div>ประเมินโดย: ${assessment.evaluatorName || 'ไม่ระบุ'}</div>
+                    <div>วันที่: ${formatDate(assessment.timestamp)}</div>
+                    <div>ด้านอารมณ์: ${assessment.interpretations.emotional}</div>
+                    <div>ด้านความประพฤติ: ${assessment.interpretations.conduct}</div>
+                    <div>ด้านสมาธิ: ${assessment.interpretations.hyperactivity}</div>
+                    <div>ด้านเพื่อน: ${assessment.interpretations.peerProblems}</div>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('');
         }
 
         // Global Functions for Button Clicks
@@ -1319,8 +1400,30 @@
         };
 
         window.viewResults = function(studentId) {
-            // This would load and show actual results
-            showError('ฟีเจอร์นี้กำลังพัฒนา', 'Coming Soon');
+          const assessment = getLatestAssessment(studentId);
+          
+          if (!assessment) {
+            showError('ไม่พบข้อมูลการประเมินสำหรับนักเรียนคนนี้');
+            return;
+          }
+          
+          // แสดงผลการประเมินใน modal
+          showAssessmentResults({
+            success: true,
+            assessmentId: `existing_${studentId}`,
+            scores: assessment.scores,
+            interpretations: assessment.interpretations,
+            studentInfo: {
+              id: assessment.studentId,
+              name: assessment.studentName,
+              class: assessment.studentClass,
+              evaluatorType: assessment.evaluatorType,
+              evaluatorName: assessment.evaluatorName,
+              relation: assessment.relation,
+              timestamp: formatDate(assessment.timestamp)
+            },
+            answers: assessment.answers
+          });
         };
 
         // Initialize
