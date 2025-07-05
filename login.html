@@ -129,6 +129,54 @@
             padding: 1rem;
             margin-bottom: 1rem;
         }
+        
+        .nav-bar {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            margin-top: 1rem;
+            padding: 1rem;
+        }
+        
+        .nav-bar a {
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .nav-bar a:hover {
+            text-decoration: none;
+            transform: translateY(-1px);
+        }
+        
+        .btn-mobile {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            touch-action: manipulation;
+            font-size: 0.9rem;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        .btn-mobile:hover {
+            text-decoration: none;
+            transform: translateY(-1px);
+        }
+        
+        @media (max-width: 640px) {
+            .nav-bar {
+                padding: 0.75rem;
+            }
+            
+            .nav-bar .flex {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -220,6 +268,19 @@
                     </button>
                 </div>
             </div>
+
+            <!-- Navigation Links -->
+            <div class="mt-6 pt-4 border-t border-gray-200">
+                <p class="text-center text-sm text-gray-600 mb-3">หรือเข้าใช้งานแบบไม่ต้องล็อกอิน:</p>
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <a href="index.html" class="btn-mobile bg-indigo-500 hover:bg-indigo-600 text-white text-center text-sm">
+                        📝 ประเมิน SDQ (Public)
+                    </a>
+                    <a href="navigation.html" class="btn-mobile bg-gray-500 hover:bg-gray-600 text-white text-center text-sm">
+                        🏠 หน้าแรกระบบ
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -288,6 +349,24 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Navigation Bar -->
+                <div id="navigation-bar" class="nav-bar hidden">
+                    <div class="flex flex-wrap justify-center gap-2 text-sm">
+                        <a href="navigation.html" class="bg-white/20 hover:bg-white/30 px-3 py-1 rounded text-white transition-colors">
+                            🏠 หน้าแรก
+                        </a>
+                        <a href="index.html" class="bg-white/20 hover:bg-white/30 px-3 py-1 rounded text-white transition-colors">
+                            📝 ประเมิน Public
+                        </a>
+                        <a href="#" id="nav-teacher-dashboard" class="bg-white/20 hover:bg-white/30 px-3 py-1 rounded text-white transition-colors hidden">
+                            👩‍🏫 Dashboard ครู
+                        </a>
+                        <a href="#" id="nav-user-management" class="bg-white/20 hover:bg-white/30 px-3 py-1 rounded text-white transition-colors hidden">
+                            👥 จัดการผู้ใช้
+                        </a>
+                    </div>
+                </div>
             </div>
         </header>
 
@@ -296,10 +375,12 @@
             <!-- Welcome Section -->
             <div class="container mx-auto px-4 py-6">
                 <div class="welcome-card">
-                    <div class="flex items-center justify-between">
+                    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center">
                         <div>
-                            <h2 class="text-xl font-bold mb-2">ยินดีต้อนรับ, <span id="welcome-user-name">ผู้ใช้งาน</span>!</h2>
-                            <p class="text-blue-100" id="welcome-message">พร้อมเริ่มงานในวันนี้แล้ว</p>
+                            <h2 class="text-xl lg:text-2xl font-bold mb-2">
+                                ยินดีต้อนรับ, <span id="welcome-user-name">ผู้ใช้งาน</span>!
+                            </h2>
+                            <p class="text-blue-100 text-lg mb-4" id="welcome-message">พร้อมเริ่มงานในวันนี้แล้ว</p>
                         </div>
                         <div class="text-right">
                             <p class="text-blue-100 text-sm">เข้าสู่ระบบล่าสุด</p>
@@ -592,6 +673,33 @@
                 'PARENT': 'พร้อมติดตามพัฒนาการของบุตรหลาน'
             };
             document.getElementById('welcome-message').textContent = welcomeMessages[currentUser.role] || 'พร้อมเริ่มงานในวันนี้แล้ว';
+            
+            // Add navigation bar
+            addNavigationBar();
+        }
+
+        function addNavigationBar() {
+            const navBar = document.getElementById('navigation-bar');
+            if (navBar) {
+                navBar.classList.remove('hidden');
+                
+                // Show role-specific navigation
+                if (currentUser.role === 'TEACHER') {
+                    const teacherNav = document.getElementById('nav-teacher-dashboard');
+                    if (teacherNav) {
+                        teacherNav.classList.remove('hidden');
+                        teacherNav.href = 'teacher-dashboard.html';
+                    }
+                }
+                
+                if (currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'SCHOOL_ADMIN') {
+                    const userMgmtNav = document.getElementById('nav-user-management');
+                    if (userMgmtNav) {
+                        userMgmtNav.classList.remove('hidden');
+                        userMgmtNav.href = 'usermanage.html';
+                    }
+                }
+            }
         }
 
         function getRoleInfo(role) {
@@ -647,6 +755,13 @@
         function getQuickActionsForRole(role) {
             const commonActions = [
                 {
+                    title: 'แบบประเมิน Public',
+                    description: 'ประเมิน SDQ แบบไม่ต้องล็อกอิน',
+                    icon: 'fas fa-clipboard-list',
+                    color: 'bg-indigo-500',
+                    onclick: 'navigateToPublicAssessment()'
+                },
+                {
                     title: 'ดูผลการประเมิน',
                     description: 'ตรวจสอบผลการประเมิน SDQ',
                     icon: 'fas fa-chart-bar',
@@ -665,6 +780,13 @@
                         onclick: 'navigateToUserManagement()'
                     },
                     {
+                        title: 'หน้าแรกระบบ',
+                        description: 'ไปยัง Navigation Hub',
+                        icon: 'fas fa-home',
+                        color: 'bg-gray-500',
+                        onclick: 'navigateToNavigationHub()'
+                    },
+                    {
                         title: 'จัดการปีการศึกษา',
                         description: 'สร้างและจัดการปีการศึกษา',
                         icon: 'fas fa-calendar-alt',
@@ -674,6 +796,13 @@
                 ],
                 'SCHOOL_ADMIN': [
                     {
+                        title: 'จัดการครู',
+                        description: 'มอบหมายชั้นเรียนและนักเรียน',
+                        icon: 'fas fa-chalkboard-teacher',
+                        color: 'bg-blue-500',
+                        onclick: 'navigateToUserManagement()'
+                    },
+                    {
                         title: 'รายงานภาพรวม',
                         description: 'สรุปผลการประเมินทั้งโรงเรียน',
                         icon: 'fas fa-chart-pie',
@@ -681,24 +810,31 @@
                         onclick: 'navigateToSummary()'
                     },
                     {
-                        title: 'จัดการครู',
-                        description: 'มอบหมายชั้นเรียนและนักเรียน',
-                        icon: 'fas fa-chalkboard-teacher',
-                        color: 'bg-blue-500',
-                        onclick: 'navigateToTeacherManagement()'
+                        title: 'หน้าแรกระบบ',
+                        description: 'ไปยัง Navigation Hub',
+                        icon: 'fas fa-home',
+                        color: 'bg-gray-500',
+                        onclick: 'navigateToNavigationHub()'
                     }
                 ],
                 'TEACHER': [
                     {
+                        title: 'Dashboard ครู',
+                        description: 'จัดการและประเมินนักเรียน',
+                        icon: 'fas fa-chalkboard-teacher',
+                        color: 'bg-green-500',
+                        onclick: 'navigateToTeacherDashboard()'
+                    },
+                    {
                         title: 'ประเมินนักเรียน',
                         description: 'ทำการประเมิน SDQ นักเรียน',
                         icon: 'fas fa-clipboard-check',
-                        color: 'bg-green-500',
+                        color: 'bg-blue-500',
                         onclick: 'navigateToAssessment()'
                     },
                     {
-                        title: 'นักเรียนในชั้น',
-                        description: 'ดูรายชื่อและผลการประเมิน',
+                        title: 'รายงานชั้นเรียน',
+                        description: 'ดูผลการประเมินของชั้น',
                         icon: 'fas fa-users',
                         color: 'bg-purple-500',
                         onclick: 'navigateToMyStudents()'
@@ -711,6 +847,13 @@
                         icon: 'fas fa-heart',
                         color: 'bg-pink-500',
                         onclick: 'navigateToParentAssessment()'
+                    },
+                    {
+                        title: 'ดูผลบุตรหลาน',
+                        description: 'ตรวจสอบผลการประเมิน',
+                        icon: 'fas fa-chart-line',
+                        color: 'bg-indigo-500',
+                        onclick: 'navigateToResults()'
                     }
                 ]
             };
@@ -783,7 +926,7 @@
                             <div class="text-center py-4">
                                 <div class="text-2xl font-bold text-blue-500 mb-2">-</div>
                                 <p class="text-gray-600">นักเรียนทั้งหมด</p>
-                                <button class="mt-3 text-blue-600 text-sm hover:underline">ดูรายละเอียด</button>
+                                <button class="mt-3 text-blue-600 text-sm hover:underline" onclick="navigateToTeacherDashboard()">ดูรายละเอียด</button>
                             </div>
                         </div>
                         <div class="bg-white rounded-lg p-6 shadow-sm">
@@ -791,6 +934,7 @@
                             <div class="text-gray-500 text-center py-8">
                                 <i class="fas fa-clipboard-list text-2xl mb-2"></i>
                                 <p>ยังไม่มีการประเมิน</p>
+                                <button class="mt-3 text-blue-600 text-sm hover:underline" onclick="navigateToTeacherDashboard()">เริ่มประเมิน</button>
                             </div>
                         </div>
                     </div>
@@ -802,6 +946,7 @@
                             <i class="fas fa-child text-2xl mb-2"></i>
                             <p>ไม่มีข้อมูลบุตรหลาน</p>
                             <p class="text-sm">กรุณาติดต่อโรงเรียนเพื่อเชื่อมโยงข้อมูล</p>
+                            <button class="mt-3 text-blue-600 text-sm hover:underline" onclick="navigateToPublicAssessment()">ประเมินแบบ Public</button>
                         </div>
                     </div>
                 `
@@ -810,37 +955,53 @@
             container.innerHTML = dashboardContent[currentUser.role] || '';
         }
 
-        // Navigation Functions (placeholders)
-        function navigateToResults() {
-            showSuccess('กำลังพัฒนา...', 'ฟีเจอร์นี้');
+        // Navigation Functions
+        function navigateToPublicAssessment() {
+            window.location.href = 'index.html';
+        }
+
+        function navigateToNavigationHub() {
+            window.location.href = 'navigation.html';
         }
 
         function navigateToUserManagement() {
-            showSuccess('กำลังพัฒนา...', 'ฟีเจอร์นี้');
+            if (currentUser && (currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'SCHOOL_ADMIN')) {
+                window.location.href = 'usermanage.html';
+            } else {
+                showError('คุณไม่มีสิทธิ์เข้าถึงหน้านี้');
+            }
         }
 
-        function navigateToAcademicYearManagement() {
-            showSuccess('กำลังพัฒนา...', 'ฟีเจอร์นี้');
+        function navigateToTeacherDashboard() {
+            if (currentUser && currentUser.role === 'TEACHER') {
+                window.location.href = 'teacher-dashboard.html';
+            } else {
+                showError('หน้านี้สำหรับครูเท่านั้น');
+            }
         }
 
-        function navigateToSummary() {
-            showSuccess('กำลังพัฒนา...', 'ฟีเจอร์นี้');
-        }
-
-        function navigateToTeacherManagement() {
-            showSuccess('กำลังพัฒนา...', 'ฟีเจอร์นี้');
+        function navigateToResults() {
+            window.location.href = 'index.html#results';
         }
 
         function navigateToAssessment() {
-            showSuccess('กำลังพัฒนา...', 'ฟีเจอร์นี้');
+            window.location.href = 'index.html#student';
         }
 
         function navigateToMyStudents() {
-            showSuccess('กำลังพัฒนา...', 'ฟีเจอร์นี้');
+            navigateToTeacherDashboard();
         }
 
         function navigateToParentAssessment() {
-            showSuccess('กำลังพัฒนา...', 'ฟีเจอร์นี้');
+            window.location.href = 'index.html#parent';
+        }
+
+        function navigateToSummary() {
+            window.location.href = 'index.html#summary';
+        }
+
+        function navigateToAcademicYearManagement() {
+            showSuccess('ฟีเจอร์นี้กำลังพัฒนา', 'Coming Soon');
         }
 
         // Event Listeners
@@ -917,11 +1078,11 @@
 
             // Other menu buttons
             document.getElementById('profile-btn').addEventListener('click', function() {
-                showSuccess('กำลังพัฒนา...', 'ฟีเจอร์นี้');
+                showSuccess('ฟีเจอร์นี้กำลังพัฒนา', 'Coming Soon');
             });
 
             document.getElementById('settings-btn').addEventListener('click', function() {
-                showSuccess('กำลังพัฒนา...', 'ฟีเจอร์นี้');
+                showSuccess('ฟีเจอร์นี้กำลังพัฒนา', 'Coming Soon');
             });
         });
 
