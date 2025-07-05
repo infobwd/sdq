@@ -566,8 +566,12 @@ async function handleFormSubmit(e) {
     let isValid = true;
     let studentInfoFromForm;
     
+    // เพิ่มการตรวจสอบ session สำหรับครูและผู้ปกครอง
+    const sessionId = localStorage.getItem('sdq_session') || sessionStorage.getItem('sdq_session');
+    
     // Determine form type and get student info
     if (formId === 'student-assessment-form') {
+        // นักเรียนไม่ต้องล็อกอิน (เหมือนเดิม)
         studentInfoFromForm = getSelectedStudentData('student-name-s');
         if (!studentInfoFromForm) {
             showError('กรุณาเลือกชื่อนักเรียน');
@@ -578,6 +582,11 @@ async function handleFormSubmit(e) {
         assessmentData.studentClass = studentInfoFromForm.class;
         assessmentData.evaluatorType = 'student';
     } else if (formId === 'teacher-assessment-form') {
+        // ครูต้องล็อกอิน (ถ้าต้องการ)
+        if (sessionId) {
+            assessmentData.sessionId = sessionId; // เพิ่ม sessionId
+        }
+        
         studentInfoFromForm = getSelectedStudentData('teacher-student-name-t');
         if (!studentInfoFromForm) {
             showError('กรุณาเลือกชื่อนักเรียน');
@@ -593,6 +602,11 @@ async function handleFormSubmit(e) {
             return;
         }
     } else if (formId === 'parent-assessment-form') {
+        // ผู้ปกครองต้องล็อกอิน (ถ้าต้องการ)
+        if (sessionId) {
+            assessmentData.sessionId = sessionId; // เพิ่ม sessionId
+        }
+        
         studentInfoFromForm = getSelectedStudentData('parent-student-name-p');
         if (!studentInfoFromForm) {
             showError('กรุณาเลือกชื่อนักเรียน');
@@ -850,6 +864,71 @@ async function handleManualAddSubmit(e) {
         showError(`ไม่สามารถเพิ่มนักเรียนได้: ${error.message}`);
         console.error('Error adding student:', error);
     }
+}
+
+
+// ===== SESSION MANAGEMENT (ใหม่) =====
+function checkUserSession() {
+    const userData = localStorage.getItem('sdq_user') || sessionStorage.getItem('sdq_user');
+    const sessionId = localStorage.getItem('sdq_session') || sessionStorage.getItem('sdq_session');
+    
+    if (userData && sessionId) {
+        try {
+            const user = JSON.parse(userData);
+            showUserInfo(user);
+        } catch (error) {
+            console.log('Session data invalid');
+        }
+    }
+}
+
+function showUserInfo(user) {
+    // เพิ่ม banner แสดงข้อมูลผู้ใช้ที่ล็อกอินอยู่
+    const header = document.querySelector('header');
+    if (header && user) {
+        const userBanner = document.createElement('div');
+        userBanner.className = 'bg-green-600 text-white text-center py-2 text-sm';
+        userBanner.innerHTML = `
+            <span>ผู้ใช้งาน: ${user.fullName || user.username} (${getRoleDisplayName(user.role)})</span>
+            <button onclick="goToDashboard()" class="ml-4 bg-green-700 px-3 py-1 rounded text-xs hover:bg-green-800">
+                ไปยัง Dashboard
+            </button>
+            <button onclick="logout()" class="ml-2 bg-red-600 px-3 py-1 rounded text-xs hover:bg-red-700">
+                ออกจากระบบ
+            </button>
+        `;
+        header.appendChild(userBanner);
+    }
+}
+
+function getRoleDisplayName(role) {
+    const roleMap = {
+        'SUPER_ADMIN': 'ผู้ดูแลระบบสูงสุด',
+        'SCHOOL_ADMIN': 'ผู้บริหารโรงเรียน',
+        'TEACHER': 'ครู',
+        'PARENT': 'ผู้ปกครอง'
+    };
+    return roleMap[role] || role;
+}
+
+function goToDashboard() {
+    const userData = localStorage.getItem('sdq_user') || sessionStorage.getItem('sdq_user');
+    if (userData) {
+        const user = JSON.parse(userData);
+        if (user.role === 'TEACHER') {
+            window.location.href = 'teacher-dashboard.html';
+        } else {
+            window.location.href = 'login.html';
+        }
+    }
+}
+
+function logout() {
+    localStorage.removeItem('sdq_user');
+    localStorage.removeItem('sdq_session');
+    sessionStorage.removeItem('sdq_user');
+    sessionStorage.removeItem('sdq_session');
+    location.reload();
 }
 
 // ===== RESULTS MANAGEMENT =====
@@ -1182,6 +1261,8 @@ function setupEventListeners() {
 // ===== INITIALIZATION =====
 
 document.addEventListener('DOMContentLoaded', function() {
+    // ตรวจสอบ session
+        checkUserSession(); 
     // Check if GAS_WEB_APP_URL is configured
     if (GAS_WEB_APP_URL === 'YOUR_GAS_WEB_APP_URL_HERE') {
         showError('กรุณาตั้งค่า URL ของ Google Apps Script ในไฟล์ script.js', 'ยังไม่ได้ตั้งค่า');
