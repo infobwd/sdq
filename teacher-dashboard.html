@@ -1527,29 +1527,46 @@
                 const exportData = filteredStudents.map(student => {
                     const assessment = getLatestAssessment(student.id);
                     return {
-                        'ชื่อ-นามสกุล': student.name,
-                        'ชั้นเรียน': student.class,
+                        'ลำดับ': filteredStudents.indexOf(student) + 1,
+                        'รหัสนักเรียน': student.id || '-',
+                        'ชื่อ-นามสกุล': student.name || '-',
+                        'ชั้นเรียน': student.class || '-',
                         'สถานะการประเมิน': assessment ? 'ประเมินแล้ว' : 'ยังไม่ประเมิน',
-                        'วันที่ประเมิน': assessment ? formatDate(assessment.timestamp) : '-',
-                        'คะแนนอารมณ์': assessment ? assessment.scores.emotional : '-',
-                        'คะแนนความประพฤติ': assessment ? assessment.scores.conduct : '-',
-                        'คะแนนสมาธิ': assessment ? assessment.scores.hyperactivity : '-',
-                        'คะแนนเพื่อน': assessment ? assessment.scores.peerProblems : '-',
-                        'คะแนนสังคม': assessment ? assessment.scores.prosocial : '-',
-                        'คะแนนรวม': assessment ? assessment.scores.totalDifficulties : '-',
-                        'การแปลผล': assessment ? assessment.interpretations.total : '-'
+                        'วันที่ประเมิน': assessment ? formatDateThai(assessment.timestamp) : '-',
+                        'ผู้ประเมิน': assessment ? getEvaluatorNameThai(assessment.evaluatorType, assessment.evaluatorName) : '-',
+                        'คะแนนด้านอารมณ์': assessment ? assessment.scores.emotional : '-',
+                        'คะแนนด้านความประพฤติ': assessment ? assessment.scores.conduct : '-',
+                        'คะแนนด้านสมาธิ': assessment ? assessment.scores.hyperactivity : '-',
+                        'คะแนนด้านเพื่อน': assessment ? assessment.scores.peerProblems : '-',
+                        'คะแนนด้านสังคม': assessment ? assessment.scores.prosocial : '-',
+                        'คะแนนรวมปัญหา': assessment ? assessment.scores.totalDifficulties : '-',
+                        'ผลการแปลผลอารมณ์': assessment ? assessment.interpretations.emotional : '-',
+                        'ผลการแปลผลความประพฤติ': assessment ? assessment.interpretations.conduct : '-',
+                        'ผลการแปลผลสมาธิ': assessment ? assessment.interpretations.hyperactivity : '-',
+                        'ผลการแปลผลเพื่อน': assessment ? assessment.interpretations.peerProblems : '-',
+                        'ผลการแปลผลสังคม': assessment ? assessment.interpretations.prosocial : '-',
+                        'สรุปผลรวม': assessment ? assessment.interpretations.total : '-',
+                        'ข้อเสนะแนะ': getRecommendationThai(assessment)
                     };
                 });
                 
-                // Convert to CSV
-                const csvContent = convertToCSV(exportData);
+                // Add BOM for UTF-8 Excel compatibility
+                const csvContent = '\ufeff' + convertToCSV(exportData);
                 
-                // Download CSV file
+                // Download CSV file with Thai filename
+                const thaiDate = new Date().toLocaleDateString('th-TH', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                }).replace(/\//g, '-');
+                
+                const filename = `รายงานการประเมิน_SDQ_${currentClass || 'ทุกชั้น'}_${thaiDate}.csv`;
+                
                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                 const link = document.createElement('a');
                 const url = URL.createObjectURL(blob);
                 link.setAttribute('href', url);
-                link.setAttribute('download', `SDQ_Assessment_${currentClass || 'All'}_${new Date().toISOString().split('T')[0]}.csv`);
+                link.setAttribute('download', filename);
                 link.style.visibility = 'hidden';
                 document.body.appendChild(link);
                 link.click();
@@ -1565,6 +1582,43 @@
             }
         }
         
+        function formatDateThai(dateString) {
+            if (!dateString) return '-';
+            
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('th-TH', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+            } catch (error) {
+                return '-';
+            }
+        }
+        
+        function getEvaluatorNameThai(evaluatorType, evaluatorName) {
+            const typeMap = {
+                'student': 'นักเรียนประเมินตนเอง',
+                'teacher': `ครู${evaluatorName ? ` (${evaluatorName})` : ''}`,
+                'parent': `ผู้ปกครอง${evaluatorName ? ` (${evaluatorName})` : ''}`
+            };
+            return typeMap[evaluatorType] || evaluatorType;
+        }
+        
+        function getRecommendationThai(assessment) {
+            if (!assessment) return '-';
+            
+            const totalScore = assessment.interpretations.total;
+            if (totalScore === 'มีปัญหา') {
+                return 'ควรได้รับการดูแลเป็นพิเศษ และพิจารณาส่งต่อผู้เชี่ยวชาญ';
+            } else if (totalScore === 'เสี่ยง') {
+                return 'ควรติดตามและให้การช่วยเหลือเพิ่มเติม';
+            } else {
+                return 'ส่งเสริมให้คงไว้ซึ่งพฤติกรรมที่ดี';
+            }
+        }
+        
         function convertToCSV(data) {
             if (!data || data.length === 0) return '';
             
@@ -1573,10 +1627,10 @@
             
             const csvRows = data.map(row => {
                 return headers.map(header => {
-                    const value = row[header];
+                    let value = row[header];
                     // Handle values that contain commas or quotes
-                    if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
-                        return `"${value.replace(/"/g, '""')}"`;
+                    if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
+                        value = `"${value.replace(/"/g, '""')}"`;
                     }
                     return value;
                 }).join(',');
