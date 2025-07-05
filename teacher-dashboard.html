@@ -967,30 +967,65 @@
                 return;
             }
             
-            container.innerHTML = ''; // ล้างเนื้อหาเดิม
+            // ล้างเนื้อหาเดิม
+            container.innerHTML = '';
             
+            // เพิ่ม header
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200';
+            headerDiv.innerHTML = `
+                <h4 class="text-lg font-semibold text-blue-800 mb-2">
+                    <i class="fas fa-clipboard-list mr-2"></i>
+                    แบบประเมินพฤติกรรม SDQ (Strengths and Difficulties Questionnaire)
+                </h4>
+                <p class="text-blue-700 text-sm">
+                    กรุณาเลือกคำตอบที่ตรงกับพฤติกรรมของนักเรียนคนนี้ในช่วง 6 เดือนที่ผ่านมา
+                </p>
+                <div class="mt-3 flex items-center text-blue-600 text-sm">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    <span>มีคำถามทั้งหมด 25 ข้อ กรุณาตอบให้ครบทุกข้อ</span>
+                </div>
+            `;
+            container.appendChild(headerDiv);
+            
+            // สร้างคำถาม
             SDQ_QUESTIONS.forEach((question, index) => {
                 const questionDiv = document.createElement('div');
-                questionDiv.className = 'question-item';
+                questionDiv.className = 'question-item mb-4';
                 questionDiv.innerHTML = `
-                    <div class="flex items-start">
-                        <div class="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-semibold mr-3 mt-1 flex-shrink-0">
+                    <div class="flex items-start space-x-4">
+                        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">
                             ${index + 1}
                         </div>
                         <div class="flex-1">
-                            <p class="text-gray-800 font-medium mb-3">${question}</p>
+                            <p class="text-gray-800 font-medium mb-4 leading-relaxed">${question}</p>
                             <div class="radio-group">
                                 <div class="radio-item" data-question="${index}" data-value="0">
                                     <input type="radio" name="q${index}" value="0" class="hidden">
-                                    <span>ไม่จริง</span>
+                                    <div class="flex items-center space-x-2">
+                                        <div class="w-4 h-4 border-2 border-gray-300 rounded-full flex items-center justify-center">
+                                            <div class="w-2 h-2 bg-gray-400 rounded-full hidden radio-dot"></div>
+                                        </div>
+                                        <span class="text-sm font-medium">ไม่จริง</span>
+                                    </div>
                                 </div>
                                 <div class="radio-item" data-question="${index}" data-value="1">
                                     <input type="radio" name="q${index}" value="1" class="hidden">
-                                    <span>ค่อนข้างจริง</span>
+                                    <div class="flex items-center space-x-2">
+                                        <div class="w-4 h-4 border-2 border-gray-300 rounded-full flex items-center justify-center">
+                                            <div class="w-2 h-2 bg-blue-500 rounded-full hidden radio-dot"></div>
+                                        </div>
+                                        <span class="text-sm font-medium">ค่อนข้างจริง</span>
+                                    </div>
                                 </div>
                                 <div class="radio-item" data-question="${index}" data-value="2">
                                     <input type="radio" name="q${index}" value="2" class="hidden">
-                                    <span>จริงแน่นอน</span>
+                                    <div class="flex items-center space-x-2">
+                                        <div class="w-4 h-4 border-2 border-gray-300 rounded-full flex items-center justify-center">
+                                            <div class="w-2 h-2 bg-green-500 rounded-full hidden radio-dot"></div>
+                                        </div>
+                                        <span class="text-sm font-medium">จริงแน่นอน</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -999,77 +1034,89 @@
                 container.appendChild(questionDiv);
             });
             
+            // เพิ่ม footer
+            const footerDiv = document.createElement('div');
+            footerDiv.className = 'mt-6 p-4 bg-gray-50 rounded-lg border';
+            footerDiv.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div class="text-sm text-gray-600">
+                        <i class="fas fa-lightbulb mr-2 text-yellow-500"></i>
+                        หลังจากตอบครบทุกข้อ กรุณากดปุ่ม "บันทึกการประเมิน"
+                    </div>
+                    <button id="save-assessment-btn" class="quick-action-btn" disabled>
+                        <i class="fas fa-save mr-2"></i>บันทึกการประเมิน
+                    </button>
+                </div>
+            `;
+            container.appendChild(footerDiv);
+            
+            // เพิ่ม event listeners สำหรับ radio buttons
+            addRadioEventListeners();
+            
             console.log('Assessment questions created:', SDQ_QUESTIONS.length);
         }
         
-        // แก้ไข Event Listener สำหรับการเลือกนักเรียน
-        document.addEventListener('DOMContentLoaded', function() {
-            // Student selection for assessment - แก้ไขให้ทำงานถูกต้อง
-            const studentSelectElement = document.getElementById('student-select');
-            if (studentSelectElement) {
-                studentSelectElement.addEventListener('change', function(e) {
-                    const studentId = e.target.value;
-                    console.log('Student selected for assessment:', studentId);
+        // 🔧 5. เพิ่ม Event Listeners สำหรับ Radio Buttons
+        function addRadioEventListeners() {
+            document.querySelectorAll('.radio-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const question = this.dataset.question;
+                    const value = this.dataset.value;
                     
-                    if (studentId) {
-                        currentAssessmentStudent = studentId;
-                        
-                        // แสดงส่วนของคำถาม
-                        const questionsSection = document.getElementById('assessment-questions');
-                        if (questionsSection) {
-                            questionsSection.classList.remove('hidden');
-                            
-                            // สร้างคำถามใหม่
-                            createAssessmentQuestions();
-                            
-                            // ล้างคำตอบเดิม
-                            assessmentAnswers = new Array(25).fill(undefined);
-                            
-                            // เพิ่ม progress bar
-                            updateAssessmentProgress();
-                            
-                            console.log('Assessment questions displayed for student:', studentId);
-                        } else {
-                            console.error('Assessment questions section not found');
-                        }
-                    } else {
-                        // ซ่อนส่วนคำถาม
-                        const questionsSection = document.getElementById('assessment-questions');
-                        if (questionsSection) {
-                            questionsSection.classList.add('hidden');
-                        }
-                        currentAssessmentStudent = null;
-                    }
-                });
-            }
-            
-            // เพิ่ม Event Listeners สำหรับ radio buttons
-            document.addEventListener('click', function(e) {
-                if (e.target.closest('.radio-item')) {
-                    const radioItem = e.target.closest('.radio-item');
-                    const question = radioItem.dataset.question;
-                    const value = radioItem.dataset.value;
+                    console.log(`Question ${parseInt(question) + 1} answered:`, value);
                     
-                    // Remove selection from other options in same question
+                    // ลบการเลือกจากตัวเลือกอื่นในคำถามเดียวกัน
                     document.querySelectorAll(`[data-question="${question}"]`).forEach(option => {
                         option.classList.remove('selected');
                         option.querySelector('input').checked = false;
+                        option.querySelector('.radio-dot').classList.add('hidden');
+                        option.querySelector('.w-4').classList.remove('border-blue-500', 'border-green-500');
+                        option.querySelector('.w-4').classList.add('border-gray-300');
                     });
                     
-                    // Select this option
-                    radioItem.classList.add('selected');
-                    radioItem.querySelector('input').checked = true;
+                    // เลือกตัวเลือกนี้
+                    this.classList.add('selected');
+                    this.querySelector('input').checked = true;
+                    this.querySelector('.radio-dot').classList.remove('hidden');
+                    this.querySelector('.w-4').classList.remove('border-gray-300');
                     
-                    // Update answers array
+                    // เปลี่ยนสีขอบตามค่า
+                    if (value === '0') {
+                        this.querySelector('.w-4').classList.add('border-gray-400');
+                    } else if (value === '1') {
+                        this.querySelector('.w-4').classList.add('border-blue-500');
+                    } else {
+                        this.querySelector('.w-4').classList.add('border-green-500');
+                    }
+                    
+                    // อัปเดต answers array
                     assessmentAnswers[parseInt(question)] = parseInt(value);
                     
-                    // Update progress
+                    // อัปเดต progress
                     updateAssessmentProgress();
                     
-                    console.log(`Question ${question} answered with value ${value}`);
-                }
+                    // เปิดใช้งานปุ่มบันทึกเมื่อตอบครบ
+                    checkAssessmentCompletion();
+                });
             });
-        });
+        }
+
+        function checkAssessmentCompletion() {
+            const answeredQuestions = assessmentAnswers.filter(answer => answer !== undefined).length;
+            const saveButton = document.getElementById('save-assessment-btn');
+            
+            if (saveButton) {
+                if (answeredQuestions === 25) {
+                    saveButton.disabled = false;
+                    saveButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                    saveButton.classList.add('hover:shadow-lg');
+                } else {
+                    saveButton.disabled = true;
+                    saveButton.classList.add('opacity-50', 'cursor-not-allowed');
+                    saveButton.classList.remove('hover:shadow-lg');
+                }
+            }
+        }
 
         async function saveAssessment() {
             if (!currentAssessmentStudent) {
@@ -1305,30 +1352,59 @@
             try {
                 let date;
                 
-                // ตรวจสอบรูปแบบวันที่ต่างๆ
+                // ตรวจสอบว่าเป็น Date object แล้วหรือยัง
                 if (dateString instanceof Date) {
                     date = dateString;
-                } else if (typeof dateString === 'string') {
-                    // ลองแปลงวันที่จากรูปแบบต่างๆ
+                } 
+                // ตรวจสอบรูปแบบวันที่ภาษาไทย เช่น "6 กรกฎาคม 2568"
+                else if (typeof dateString === 'string' && dateString.includes('กรกฎาคม')) {
+                    // แปลงเดือนภาษาไทยเป็นภาษาอังกฤษ
+                    const thaiToEng = convertThaiDateToEnglish(dateString);
+                    date = new Date(thaiToEng);
+                }
+                // ตรวจสอบรูปแบบ ISO หรือ standard date
+                else if (typeof dateString === 'string') {
+                    // ลองแปลงตรงๆ ก่อน
                     date = new Date(dateString);
                     
-                    // ถ้าแปลงไม่ได้ ลอง parse รูปแบบไทย
+                    // ถ้าแปลงไม่ได้ ลอง parse รูปแบบอื่น
                     if (isNaN(date.getTime())) {
-                        // ลอง parse รูปแบบ ISO
-                        const isoDate = dateString.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1');
-                        date = new Date(isoDate);
+                        // ลองแปลงจากรูปแบบ DD/MM/YYYY หรือ DD-MM-YYYY
+                        const datePatterns = [
+                            /(\d{1,2})\/(\d{1,2})\/(\d{4})/,  // DD/MM/YYYY
+                            /(\d{1,2})-(\d{1,2})-(\d{4})/,   // DD-MM-YYYY
+                            /(\d{4})-(\d{1,2})-(\d{1,2})/    // YYYY-MM-DD
+                        ];
+                        
+                        for (let pattern of datePatterns) {
+                            const match = dateString.match(pattern);
+                            if (match) {
+                                if (pattern === datePatterns[2]) { // YYYY-MM-DD
+                                    date = new Date(match[1], match[2] - 1, match[3]);
+                                } else { // DD/MM/YYYY or DD-MM-YYYY
+                                    date = new Date(match[3], match[2] - 1, match[1]);
+                                }
+                                break;
+                            }
+                        }
                     }
-                } else {
-                    // ถ้าเป็น timestamp
-                    date = new Date(Number(dateString));
+                } 
+                // ถ้าเป็นตัวเลข (timestamp)
+                else if (typeof dateString === 'number') {
+                    date = new Date(dateString);
+                }
+                else {
+                    console.warn('Unknown date format:', dateString);
+                    return 'รูปแบบวันที่ไม่รู้จัก';
                 }
                 
                 // ตรวจสอบว่าเป็น valid date หรือไม่
-                if (isNaN(date.getTime())) {
-                    console.warn('Invalid date:', dateString);
+                if (!date || isNaN(date.getTime())) {
+                    console.warn('Invalid date after parsing:', dateString);
                     return 'วันที่ไม่ถูกต้อง';
                 }
                 
+                // แปลงเป็นรูปแบบภาษาไทย
                 return date.toLocaleDateString('th-TH', {
                     year: 'numeric',
                     month: 'short',
@@ -1337,10 +1413,58 @@
                 
             } catch (error) {
                 console.error('Error formatting date:', error, 'Input:', dateString);
-                return 'วันที่ไม่ถูกต้อง';
+                return 'ข้อผิดพลาดในการแปลงวันที่';
             }
         }
-
+        
+        function convertThaiDateToEnglish(thaiDateString) {
+            try {
+                // แมพเดือนภาษาไทยเป็นภาษาอังกฤษ
+                const thaiMonths = {
+                    'มกราคม': 'January',
+                    'กุมภาพันธ์': 'February', 
+                    'มีนาคม': 'March',
+                    'เมษายน': 'April',
+                    'พฤษภาคม': 'May',
+                    'มิถุนายน': 'June',
+                    'กรกฎาคม': 'July',
+                    'สิงหาคม': 'August',
+                    'กันยายน': 'September',
+                    'ตุลาคม': 'October',
+                    'พฤศจิกายน': 'November',
+                    'ธันวาคม': 'December'
+                };
+                
+                // แยกส่วนของวันที่ เช่น "6 กรกฎาคม 2568"
+                const parts = thaiDateString.trim().split(' ');
+                if (parts.length !== 3) {
+                    throw new Error('Invalid Thai date format');
+                }
+                
+                const day = parseInt(parts[0]);
+                const thaiMonth = parts[1];
+                const buddhistYear = parseInt(parts[2]);
+                
+                // แปลงเดือนภาษาไทยเป็นภาษาอังกฤษ
+                const englishMonth = thaiMonths[thaiMonth];
+                if (!englishMonth) {
+                    throw new Error('Unknown Thai month: ' + thaiMonth);
+                }
+                
+                // แปลงปีพุทธศักราชเป็นคริสต์ศักราช
+                const christianYear = buddhistYear - 543;
+                
+                // สร้างวันที่ในรูปแบบภาษาอังกฤษ
+                const englishDateString = `${englishMonth} ${day}, ${christianYear}`;
+                
+                console.log('Converted Thai date:', thaiDateString, '->', englishDateString);
+                return englishDateString;
+                
+            } catch (error) {
+                console.error('Error converting Thai date:', error, 'Input:', thaiDateString);
+                return null;
+            }
+        }
         function formatDateFull(dateString) {
             if (!dateString) return 'ไม่ทราบ';
             
@@ -1388,6 +1512,49 @@
                 updatePriorityStudents();
             }
         }
+
+
+        function showAssessmentQuestions(studentId) {
+    console.log('Showing assessment questions for student:', studentId);
+    
+    const questionsSection = document.getElementById('assessment-questions');
+    const questionsContainer = document.getElementById('questions-container');
+    
+    if (!questionsSection || !questionsContainer) {
+        console.error('Assessment elements not found:', {
+            questionsSection: !!questionsSection,
+            questionsContainer: !!questionsContainer
+        });
+        return false;
+    }
+    
+    // แสดงส่วนคำถาม
+    questionsSection.classList.remove('hidden');
+    
+    // ล้างคำถามเดิม
+    questionsContainer.innerHTML = '';
+    
+    // สร้างคำถามใหม่
+    createAssessmentQuestions();
+    
+    // รีเซ็ตคำตอบ
+    assessmentAnswers = new Array(25).fill(undefined);
+    currentAssessmentStudent = studentId;
+    
+    // อัปเดต progress
+    updateAssessmentProgress();
+    
+    // เลื่อนไปยังส่วนคำถาม
+    setTimeout(() => {
+        questionsSection.scrollIntoView({ 
+            behavior: 'smooth',
+            block: 'start'
+        });
+    }, 100);
+    
+    console.log('Assessment questions displayed successfully');
+    return true;
+}
 
         // Chart Functions (placeholders)
         function updateCharts() {
@@ -2216,48 +2383,114 @@
         }
         
         // Progress indicator for assessment
-        function updateAssessmentProgress() {
-            const answeredQuestions = assessmentAnswers.filter(answer => answer !== undefined).length;
-            const progress = (answeredQuestions / 25) * 100;
-            
-            let progressBar = document.getElementById('assessment-progress');
-            if (!progressBar) {
-                progressBar = document.createElement('div');
-                progressBar.id = 'assessment-progress';
-                progressBar.className = 'mb-4';
-                progressBar.innerHTML = `
-                    <div class="flex justify-between text-sm text-gray-600 mb-2">
-                        <span>ความคืบหน้าการประเมิน</span>
-                        <span id="progress-text">0/25 ข้อ</span>
-                    </div>
-                    <div class="w-full bg-gray-200 rounded-full h-2">
-                        <div id="progress-fill" class="bg-blue-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
-                    </div>
-                `;
-                
-                const container = document.getElementById('questions-container');
-                if (container && container.parentNode) {
-                    container.parentNode.insertBefore(progressBar, container);
-                }
+function updateAssessmentProgress() {
+    const answeredQuestions = assessmentAnswers.filter(answer => answer !== undefined).length;
+    const progress = (answeredQuestions / 25) * 100;
+    
+    let progressBar = document.getElementById('assessment-progress');
+    if (!progressBar) {
+        progressBar = document.createElement('div');
+        progressBar.id = 'assessment-progress';
+        progressBar.className = 'mb-6 p-4 bg-white rounded-lg border shadow-sm';
+        progressBar.innerHTML = `
+            <div class="flex justify-between items-center mb-3">
+                <span class="text-sm font-medium text-gray-700">ความคืบหน้าการประเมิน</span>
+                <span id="progress-text" class="text-sm font-bold text-blue-600">0/25 ข้อ</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                <div id="progress-fill" class="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+            </div>
+            <div class="mt-2 text-xs text-gray-500 text-center" id="progress-message">
+                กรุณาตอบคำถามให้ครบทุกข้อ
+            </div>
+        `;
+        
+        const questionsSection = document.getElementById('assessment-questions');
+        const questionsContainer = document.getElementById('questions-container');
+        if (questionsSection && questionsContainer) {
+            questionsSection.insertBefore(progressBar, questionsContainer);
+        }
+    }
+    
+    const progressText = document.getElementById('progress-text');
+    const progressFill = document.getElementById('progress-fill');
+    const progressMessage = document.getElementById('progress-message');
+    
+    if (progressText) {
+        progressText.textContent = `${answeredQuestions}/25 ข้อ`;
+    }
+    
+    if (progressFill) {
+        progressFill.style.width = `${progress}%`;
+        
+        if (progress === 100) {
+            progressFill.className = 'bg-gradient-to-r from-green-500 to-green-600 h-3 rounded-full transition-all duration-500 ease-out';
+            if (progressMessage) {
+                progressMessage.textContent = '✅ ตอบครบทุกข้อแล้ว พร้อมบันทึกการประเมิน';
+                progressMessage.className = 'mt-2 text-xs text-green-600 text-center font-medium';
             }
-            
-            const progressText = document.getElementById('progress-text');
-            const progressFill = document.getElementById('progress-fill');
-            
-            if (progressText) {
-                progressText.textContent = `${answeredQuestions}/25 ข้อ`;
+        } else if (progress >= 80) {
+            progressFill.className = 'bg-gradient-to-r from-yellow-500 to-orange-500 h-3 rounded-full transition-all duration-500 ease-out';
+            if (progressMessage) {
+                progressMessage.textContent = `เหลืออีก ${25 - answeredQuestions} ข้อ`;
+                progressMessage.className = 'mt-2 text-xs text-orange-600 text-center';
             }
-            
-            if (progressFill) {
-                progressFill.style.width = `${progress}%`;
-                
-                if (progress === 100) {
-                    progressFill.className = 'bg-green-500 h-2 rounded-full transition-all duration-300';
-                } else {
-                    progressFill.className = 'bg-blue-500 h-2 rounded-full transition-all duration-300';
-                }
+        } else {
+            progressFill.className = 'bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500 ease-out';
+            if (progressMessage) {
+                progressMessage.textContent = `เหลืออีก ${25 - answeredQuestions} ข้อ`;
+                progressMessage.className = 'mt-2 text-xs text-gray-500 text-center';
             }
         }
+    }
+}
+
+// 🔧 8. เพิ่มฟังก์ชัน showNotification (ถ้ายังไม่มี)
+function showNotification(message, type = 'info') {
+    // ลบ notification เดิม (ถ้ามี)
+    const existingNotification = document.querySelector('.notification-toast');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+    
+    const notification = document.createElement('div');
+    notification.className = `notification-toast fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-md transition-all duration-300 ${
+        type === 'success' ? 'bg-green-500' : 
+        type === 'error' ? 'bg-red-500' : 
+        type === 'warning' ? 'bg-yellow-500' : 
+        'bg-blue-500'
+    } text-white`;
+    
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <i class="fas fa-${
+                type === 'success' ? 'check-circle' : 
+                type === 'error' ? 'exclamation-circle' : 
+                type === 'warning' ? 'exclamation-triangle' : 
+                'info-circle'
+            } mr-2"></i>
+            <span>${message}</span>
+            <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white hover:text-gray-200 focus:outline-none">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                notification.remove();
+            }, 300);
+        }
+    }, 5000);
+}
+
+console.log('🔧 Thai date parsing and Assessment Questions fixes applied!');
 
         
         // Enhanced radio item click handler with progress tracking
