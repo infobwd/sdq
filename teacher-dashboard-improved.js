@@ -4333,6 +4333,60 @@ function switchTab(tabName) {
 }
 
 // ============================
+// NOTIFICATION SYSTEM
+// ============================
+
+/**
+ * แสดง Notification Toast
+ * @param {string} message - ข้อความ
+ * @param {string} type - ประเภท ('info', 'success', 'error', 'warning')
+ */
+function showNotification(message, type = 'info') {
+    // ลบ notification เดิม (ถ้ามี)
+    const existingNotification = document.querySelector('.notification-toast');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+    
+    const notification = document.createElement('div');
+    notification.className = `notification-toast fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-md transition-all duration-300 ${
+        type === 'success' ? 'bg-green-500' : 
+        type === 'error' ? 'bg-red-500' : 
+        type === 'warning' ? 'bg-yellow-500' : 
+        'bg-blue-500'
+    } text-white`;
+    
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <i class="fas fa-${
+                type === 'success' ? 'check-circle' : 
+                type === 'error' ? 'exclamation-circle' : 
+                type === 'warning' ? 'exclamation-triangle' : 
+                'info-circle'
+            } mr-2"></i>
+            <span>${message}</span>
+            <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white hover:text-gray-200 focus:outline-none">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // ลบอัตโนมัติหลัง 5 วินาที
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                notification.remove();
+            }, 300);
+        }
+    }, 5000);
+}
+
+
+// ============================
 // ENHANCED MODAL FUNCTIONS
 // ============================
 
