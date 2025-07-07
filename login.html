@@ -492,58 +492,60 @@
         }
 
         // Authentication Functions
-        async function login(username, password, rememberMe = false) {
-            try {
-                showLoading(true, "กำลังตรวจสอบข้อมูลการเข้าสู่ระบบ...");
-                
-                const response = await makeJSONPRequest('authenticateUser', {
-                    username: username,
-                    password: password
-                });
-                
-                showLoading(false);
-                
-                if (response && response.success) {
-                    currentUser = response.user;
-                    currentSession = response.sessionId;
-                    
-                    // Save session
-                    if (rememberMe) {
-                        localStorage.setItem('sdq_session', currentSession);
-                        // ใน login page หลัง login สำเร็จ ต้องบันทึกแบบนี้:
-                        localStorage.setItem('sdq_user', JSON.stringify({
-                            username: 'username',
-                            fullName: 'ชื่อเต็ม',
-                            role: 'TEACHER',  // สำคัญมาก!
-                            school: 'ชื่อโรงเรียน'
-                        }));
-                        localStorage.setItem('sdq_session', 'session_id');
-                        localStorage.setItem('sdq_session_expiry', (Date.now() + 24*60*60*1000).toString());
-                    } else {
-                        sessionStorage.setItem('sdq_session', currentSession);
-                        // ใน login page หลัง login สำเร็จ ต้องบันทึกแบบนี้:
-                        localStorage.setItem('sdq_user', JSON.stringify({
-                            username: 'username',
-                            fullName: 'ชื่อเต็ม',
-                            role: 'TEACHER',  // สำคัญมาก!
-                            school: 'ชื่อโรงเรียน'
-                        }));
-                        localStorage.setItem('sdq_session', 'session_id');
-                        localStorage.setItem('sdq_session_expiry', (Date.now() + 24*60*60*1000).toString());                    }
-                    
-                    await showSuccess('เข้าสู่ระบบสำเร็จ!');
-                    await loadMainApplication();
-                    
-                } else {
-                    showError(response ? response.message : 'ไม่สามารถเข้าสู่ระบบได้');
-                }
-                
-            } catch (error) {
-                showLoading(false);
-                showError(`ไม่สามารถเข้าสู่ระบบได้: ${error.message}`);
-                console.error('Login error:', error);
+async function login(username, password, rememberMe = false) {
+    try {
+        showLoading(true, "กำลังตรวจสอบข้อมูลการเข้าสู่ระบบ...");
+        
+        const response = await makeJSONPRequest('authenticateUser', {
+            username: username,
+            password: password
+        });
+        
+        showLoading(false);
+        
+        if (response && response.success) {
+            currentUser = response.user;
+            currentSession = response.sessionId;
+            
+            // สร้างข้อมูล user ที่ครบถ้วน
+            const userData = {
+                username: username,
+                fullName: response.user.fullName || response.user.name || username,
+                role: response.user.role || 'TEACHER',
+                school: response.user.school || 'โรงเรียน',
+                id: response.user.id || username,
+                assignedClasses: response.user.assignedClasses || []
+            };
+            
+            console.log('Saving user data:', userData);
+            
+            // คำนวณเวลาหมดอายุ (24 ชั่วโมง)
+            const expiryTime = Date.now() + (24 * 60 * 60 * 1000);
+            
+            // Save session
+            if (rememberMe) {
+                localStorage.setItem('sdq_user', JSON.stringify(userData));
+                localStorage.setItem('sdq_session', currentSession);
+                localStorage.setItem('sdq_session_expiry', expiryTime.toString());
+            } else {
+                sessionStorage.setItem('sdq_user', JSON.stringify(userData));
+                sessionStorage.setItem('sdq_session', currentSession);
+                sessionStorage.setItem('sdq_session_expiry', expiryTime.toString());
             }
+            
+            await showSuccess('เข้าสู่ระบบสำเร็จ!');
+            await loadMainApplication();
+            
+        } else {
+            showError(response ? response.message : 'ไม่สามารถเข้าสู่ระบบได้');
         }
+        
+    } catch (error) {
+        showLoading(false);
+        showError(`ไม่สามารถเข้าสู่ระบบได้: ${error.message}`);
+        console.error('Login error:', error);
+    }
+}
 
         async function logout() {
             const result = await showConfirm('คุณต้องการออกจากระบบหรือไม่?', 'ออกจากระบบ');
@@ -1101,15 +1103,52 @@
             });
         });
 
-        function getDemoCredentials(role) {
-            const credentials = {
-                'admin': { username: 'admin', password: 'admin123' },
-                'school_admin': { username: 'school_admin', password: 'school123' },
-                'teacher': { username: 'teacher', password: 'teacher123' },
-                'parent': { username: 'parent', password: 'parent123' }
-            };
-            return credentials[role] || credentials['admin'];
+function getDemoCredentials(role) {
+    const credentials = {
+        'admin': { 
+            username: 'admin', 
+            password: 'admin123',
+            userData: {
+                fullName: 'ผู้ดูแลระบบสูงสุด',
+                role: 'SUPER_ADMIN',
+                school: 'โรงเรียนสาธิต',
+                id: 'admin_001'
+            }
+        },
+        'school_admin': { 
+            username: 'school_admin', 
+            password: 'school123',
+            userData: {
+                fullName: 'ผู้บริหารโรงเรียน',
+                role: 'SCHOOL_ADMIN',
+                school: 'โรงเรียนสาธิต',
+                id: 'admin_002'
+            }
+        },
+        'teacher': { 
+            username: 'teacher', 
+            password: 'teacher123',
+            userData: {
+                fullName: 'ครูสาธิต',
+                role: 'TEACHER',
+                school: 'โรงเรียนสาธิต',
+                id: 'teacher_001',
+                assignedClasses: ['ม.1/1', 'ม.1/2']
+            }
+        },
+        'parent': { 
+            username: 'parent', 
+            password: 'parent123',
+            userData: {
+                fullName: 'ผู้ปกครองสาธิต',
+                role: 'PARENT',
+                school: 'โรงเรียนสาธิต',
+                id: 'parent_001'
+            }
         }
+    };
+    return credentials[role] || credentials['teacher'];
+}
 
         async function checkExistingSession() {
             const sessionId = localStorage.getItem('sdq_session') || sessionStorage.getItem('sdq_session');
