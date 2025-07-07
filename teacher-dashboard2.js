@@ -579,17 +579,26 @@ async function refreshSession() {
 /**
  * Enhanced redirect to login with state preservation
  */
+// function redirectToLogin() {
+//     // Save current page state for restoration after login
+//     const currentState = {
+//         tab: document.querySelector('.tab.active')?.dataset.tab || 'students',
+//         class: currentClass,
+//         search: document.getElementById('student-search')?.value || '',
+//         timestamp: Date.now()
+//     };
+    
+//     saveToStorage('sdq_return_state', currentState, 10 * 60 * 1000); // 10 minutes
+    
+//     showError('กรุณาเข้าสู่ระบบใหม่').then(() => {
+//         window.location.href = 'login.html';
+//     });
+// }
+
+/**
+ * เปลี่ยนเส้นทางไปหน้า login
+ */
 function redirectToLogin() {
-    // Save current page state for restoration after login
-    const currentState = {
-        tab: document.querySelector('.tab.active')?.dataset.tab || 'students',
-        class: currentClass,
-        search: document.getElementById('student-search')?.value || '',
-        timestamp: Date.now()
-    };
-    
-    saveToStorage('sdq_return_state', currentState, 10 * 60 * 1000); // 10 minutes
-    
     showError('กรุณาเข้าสู่ระบบใหม่').then(() => {
         window.location.href = 'login.html';
     });
