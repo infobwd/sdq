@@ -3228,6 +3228,28 @@ async function saveAssessmentEnhanced() {
         handleError(error, 'saveAssessment');
     }
 }
+/**
+ * ล้างฟอร์มการประเมิน
+ */
+function clearAssessmentForm() {
+    document.getElementById('student-select').value = '';
+    document.getElementById('assessment-questions').classList.add('hidden');
+    assessmentAnswers = [];
+    currentAssessmentStudent = null;
+    
+    // ล้างการเลือกทั้งหมด
+    document.querySelectorAll('.radio-item').forEach(item => {
+        item.classList.remove('selected');
+        const input = item.querySelector('input');
+        if (input) input.checked = false;
+    });
+    
+    // ลบ progress bar
+    const progressBar = document.getElementById('assessment-progress');
+    if (progressBar) {
+        progressBar.remove();
+    }
+}
 
 console.log('📋 Enhanced assessment functions loaded');
 // Teacher Dashboard JavaScript - Improved Part 4: Advanced Charts, Export & Complete Initialization
