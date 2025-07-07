@@ -916,7 +916,7 @@ function goToDashboard() {
     if (userData) {
         const user = JSON.parse(userData);
         if (user.role === 'TEACHER') {
-            window.location.href = 'teacher-dashboard.html';
+            window.location.href = 'teacher-dashboard3.html';
         } else {
             window.location.href = 'login.html';
         }
