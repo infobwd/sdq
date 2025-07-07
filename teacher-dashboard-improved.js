@@ -2931,6 +2931,26 @@ function addEnhancedRadioEventListeners() {
 }
 
 /**
+ * ตรวจสอบความสมบูรณ์ของการประเมิน
+ */
+function checkAssessmentCompletion() {
+    const answeredQuestions = assessmentAnswers.filter(answer => answer !== undefined).length;
+    const saveButton = document.getElementById('save-assessment-btn');
+    
+    if (saveButton) {
+        if (answeredQuestions === 25) {
+            saveButton.disabled = false;
+            saveButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            saveButton.classList.add('hover:shadow-lg');
+        } else {
+            saveButton.disabled = true;
+            saveButton.classList.add('opacity-50', 'cursor-not-allowed');
+            saveButton.classList.remove('hover:shadow-lg');
+        }
+    }
+}
+
+/**
  * Create assessment progress tracker
  */
 function createAssessmentProgressTracker() {
