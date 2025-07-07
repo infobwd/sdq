@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Dashboard ครู - ระบบประเมิน SDQ</title>
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" as="style">
+    <link rel="preload" href="teacher-dashboard2.css" as="style">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Thai Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Chart.js - Lazy loaded -->
+    <script>
+        // Lazy load Chart.js when needed
+        window.loadChartJS = function() {
+            return new Promise((resolve) => {
+                if (window.Chart) {
+                    resolve();
+                    return;
+                }
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js';
+                script.onload = resolve;
+                document.head.appendChild(script);
+            });
+        };
+    </script>
+    
+    <!-- jsPDF and SheetJS for export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="teacher-dashboard.css">
+</head>
+<body>
+    <!-- Loading Overlay with improved animation -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="spinner-container">
+            <div class="spinner"></div>
+            <div class="spinner-dots">
+                <div class="dot1"></div>
+                <div class="dot2"></div>
+                <div class="dot3"></div>
+            </div>
+        </div>
+        <div id="loading-text" class="loading-text">กำลังประมวลผล...</div>
+        <div id="loading-progress" class="loading-progress hidden">
+            <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill"></div>
+            </div>
+            <div id="progress-text" class="progress-text">0%</div>
+        </div>
+    </div>
+
+    <!-- Offline Indicator -->
+    <div id="offline-indicator" class="offline-indicator hidden">
+        <i class="fas fa-wifi-slash mr-2"></i>
+        <span>ไม่มีการเชื่อมต่ออินเทอร์เน็ต</span>
+    </div>
+
+    <div class="min-h-screen p-4">
+        <!-- Welcome Banner with enhanced info -->
+        <div class="dashboard-container max-w-7xl mx-auto mb-6 p-6">
+            <div class="welcome-banner">
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center">
+                    <div class="flex-1">
+                        <h1 class="text-2xl lg:text-3xl font-bold mb-2">
+                            <i class="fas fa-chalkboard-teacher mr-3"></i>
+                            ยินดีต้อนรับ, <span id="teacher-name">คุณครู</span>
+                        </h1>
+                        <p class="text-blue-100 text-lg mb-4">
+                            แดชบอร์ดสำหรับการจัดการและประเมินนักเรียน
+                        </p>
+                        <div class="flex items-center text-blue-100 text-sm">
+                            <i class="fas fa-calendar-alt mr-2"></i>
+                            <span id="current-date">วันนี้</span>
+                            <span class="mx-4">|</span>
+                            <i class="fas fa-school mr-2"></i>
+                            <span id="school-name">โรงเรียน</span>
+                            <span class="mx-4">|</span>
+                            <i class="fas fa-clock mr-2"></i>
+                            <span id="last-sync">อัปเดตล่าสุด: <span id="sync-time">-</span></span>
+                        </div>
+                    </div>
+                    <div class="mt-4 lg:mt-0">
+                        <label class="block text-blue-100 text-sm mb-2">เลือกชั้นเรียน:</label>
+                        <select id="class-selector" class="class-selector">
+                            <option value="">กำลังโหลด...</option>
+                        </select>
+                        <button id="refresh-all-btn" class="mt-2 px-3 py-1 bg-white bg-opacity-20 rounded text-sm hover:bg-opacity-30 transition-all">
+                            <i class="fas fa-sync-alt mr-1"></i>รีเฟรช
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Statistics Cards with trends -->
+        <div class="dashboard-container max-w-7xl mx-auto mb-6 p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-gray-800">📊 สรุปสถิติ</h2>
+                <div class="flex gap-2">
+                    <button id="stats-filter-btn" class="btn-secondary text-sm">
+                        <i class="fas fa-filter mr-1"></i>ตัวกรอง
+                    </button>
+                    <button id="stats-export-btn" class="btn-secondary text-sm">
+                        <i class="fas fa-download mr-1"></i>ส่งออก
+                    </button>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="stat-card" data-stat="total">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-green-100 text-sm">นักเรียนทั้งหมด</p>
+                            <p class="text-2xl font-bold" id="total-students">-</p>
+                            <p class="text-green-200 text-xs" id="total-trend">-</p>
+                        </div>
+                        <i class="fas fa-users text-3xl opacity-80"></i>
+                    </div>
+                </div>
+                
+                <div class="stat-card info" data-stat="assessed">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-blue-100 text-sm">ประเมินแล้ว</p>
+                            <p class="text-2xl font-bold" id="assessed-students">-</p>
+                            <p class="text-blue-200 text-xs" id="assessed-trend">-</p>
+                        </div>
+                        <i class="fas fa-clipboard-check text-3xl opacity-80"></i>
+                    </div>
+                </div>
+                
+                <div class="stat-card warning" data-stat="risk">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-yellow-100 text-sm">ต้องดูแล</p>
+                            <p class="text-2xl font-bold" id="risk-students">-</p>
+                            <p class="text-yellow-200 text-xs" id="risk-trend">-</p>
+                        </div>
+                        <i class="fas fa-exclamation-triangle text-3xl opacity-80"></i>
+                    </div>
+                </div>
+                
+                <div class="stat-card danger" data-stat="problem">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-red-100 text-sm">มีปัญหา</p>
+                            <p class="text-2xl font-bold" id="problem-students">-</p>
+                            <p class="text-red-200 text-xs" id="problem-trend">-</p>
+                        </div>
+                        <i class="fas fa-heart-broken text-3xl opacity-80"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Quick Actions with more options -->
+        <div class="dashboard-container max-w-7xl mx-auto mb-6 p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">⚡ การดำเนินการด่วน</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <button id="quick-assess-btn" class="quick-action-btn">
+                    <i class="fas fa-plus-circle"></i>
+                    ประเมินนักเรียนใหม่
+                </button>
+                <button id="view-reports-btn" class="quick-action-btn">
+                    <i class="fas fa-chart-bar"></i>
+                    ดูรายงานสรุป
+                </button>
+                <div class="relative">
+                    <button id="export-data-btn" class="quick-action-btn w-full">
+                        <i class="fas fa-download"></i>
+                        ส่งออกข้อมูล
+                        <i class="fas fa-chevron-down ml-2"></i>
+                    </button>
+                    <!-- Export dropdown menu -->
+                    <div id="export-menu" class="export-dropdown hidden">
+                        <button class="export-option" data-format="csv">
+                            <i class="fas fa-file-csv"></i>
+                            ส่งออก CSV
+                        </button>
+                        <button class="export-option" data-format="excel">
+                            <i class="fas fa-file-excel"></i>
+                            ส่งออก Excel
+                        </button>
+                        <button class="export-option" data-format="pdf">
+                            <i class="fas fa-file-pdf"></i>
+                            ส่งออก PDF
+                        </button>
+                    </div>
+                </div>
+                <button id="bulk-assess-btn" class="quick-action-btn">
+                    <i class="fas fa-layer-group"></i>
+                    ประเมินหลายคน
+                </button>
+            </div>
+        </div>
+
+        <!-- Enhanced Main Content Tabs with lazy loading -->
+        <div class="dashboard-container max-w-7xl mx-auto p-6">
+            <div class="flex flex-wrap gap-2 mb-6 border-b border-gray-200 pb-4">
+                <div class="tab active" data-tab="students">
+                    <i class="fas fa-users mr-2"></i>รายชื่อนักเรียน
+                    <span id="students-count" class="tab-badge">0</span>
+                </div>
+                <div class="tab" data-tab="assessment">
+                    <i class="fas fa-clipboard-list mr-2"></i>ประเมิน SDQ
+                </div>
+                <div class="tab" data-tab="reports" data-lazy="true">
+                    <i class="fas fa-chart-line mr-2"></i>รายงานและกราฟ
+                </div>
+                <div class="tab" data-tab="priority">
+                    <i class="fas fa-exclamation-circle mr-2"></i>นักเรียนที่ต้องดูแล
+                    <span id="priority-count" class="tab-badge danger">0</span>
+                </div>
+                <div class="tab" data-tab="history">
+                    <i class="fas fa-history mr-2"></i>ประวัติการประเมิน
+                </div>
+            </div>
+
+            <!-- Students Tab with enhanced search and filters -->
+            <div id="students-tab" class="tab-content">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">👥 รายชื่อนักเรียน</h3>
+                    <div class="flex gap-2 mt-2 sm:mt-0 flex-wrap">
+                        <div class="relative">
+                            <input 
+                                type="text" 
+                                id="student-search" 
+                                placeholder="ค้นหานักเรียน..."
+                                class="px-3 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 w-64"
+                            >
+                            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                            <button id="clear-search" class="absolute right-3 top-3 text-gray-400 hover:text-gray-600 hidden">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <button id="filter-students-btn" class="btn-secondary">
+                            <i class="fas fa-filter"></i>
+                        </button>
+                        <button id="sort-students-btn" class="btn-secondary">
+                            <i class="fas fa-sort"></i>
+                        </button>
+                        <button id="refresh-students-btn" class="btn-secondary">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filter and Sort Panel -->
+                <div id="filter-panel" class="filter-panel hidden mb-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">สถานะการประเมิน</label>
+                            <select id="status-filter" class="w-full p-2 border border-gray-300 rounded-lg">
+                                <option value="">ทั้งหมด</option>
+                                <option value="assessed">ประเมินแล้ว</option>
+                                <option value="not-assessed">ยังไม่ประเมิน</option>
+                                <option value="normal">ปกติ</option>
+                                <option value="risk">เสี่ยง</option>
+                                <option value="problem">มีปัญหา</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">เรียงตาม</label>
+                            <select id="sort-by" class="w-full p-2 border border-gray-300 rounded-lg">
+                                <option value="name">ชื่อ</option>
+                                <option value="class">ชั้นเรียน</option>
+                                <option value="assessment-date">วันที่ประเมิน</option>
+                                <option value="total-score">คะแนนรวม</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">ลำดับ</label>
+                            <select id="sort-order" class="w-full p-2 border border-gray-300 rounded-lg">
+                                <option value="asc">จากน้อยไปมาก</option>
+                                <option value="desc">จากมากไปน้อย</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex justify-end mt-4 gap-2">
+                        <button id="clear-filters" class="btn-secondary">ล้างตัวกรอง</button>
+                        <button id="apply-filters" class="btn-success">ใช้ตัวกรอง</button>
+                    </div>
+                </div>
+                
+                <!-- Students Grid with virtual scrolling for performance -->
+                <div id="students-container" class="students-container">
+                    <div id="students-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- Student cards will be populated here -->
+                    </div>
+                    
+                    <!-- Load More Button for pagination -->
+                    <div id="load-more-container" class="text-center mt-6 hidden">
+                        <button id="load-more-btn" class="btn-secondary">
+                            <i class="fas fa-plus mr-2"></i>โหลดเพิ่มเติม
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="students-empty" class="text-center py-12 hidden">
+                    <i class="fas fa-user-graduate text-6xl text-gray-300 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-gray-500 mb-2">ไม่พบนักเรียน</h3>
+                    <p class="text-gray-400">ยังไม่มีนักเรียนในชั้นเรียนที่เลือก</p>
+                </div>
+
+                <!-- Students skeleton loading -->
+                <div id="students-skeleton" class="hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div class="skeleton-card" v-for="i in 6"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Assessment Tab with improved UX -->
+            <div id="assessment-tab" class="tab-content hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">📝 ประเมิน SDQ นักเรียน</h3>
+                    <div class="flex gap-2">
+                        <button id="save-draft-btn" class="btn-secondary hidden">
+                            <i class="fas fa-save mr-2"></i>บันทึกแบบร่าง
+                        </button>
+                        <button id="clear-assessment-btn" class="btn-secondary">
+                            <i class="fas fa-eraser mr-2"></i>ล้างฟอร์ม
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Assessment Form with auto-save -->
+                <div class="assessment-form">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">เลือกนักเรียน *</label>
+                        <div class="relative">
+                            <select id="student-select" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="">-- เลือกนักเรียนที่ต้องการประเมิน --</option>
+                            </select>
+                            <div id="draft-indicator" class="absolute right-12 top-3 hidden">
+                                <i class="fas fa-clock text-yellow-500" title="มีแบบร่างที่บันทึกไว้"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Auto-save notification -->
+                    <div id="auto-save-status" class="auto-save-status hidden">
+                        <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                        <span>บันทึกแบบร่างอัตโนมัติ</span>
+                        <span id="auto-save-time" class="text-gray-500 ml-2"></span>
+                    </div>
+                    
+                    <div id="assessment-questions" class="hidden">
+                        <div id="questions-container">
+                            <!-- Questions will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports Tab - Lazy loaded -->
+            <div id="reports-tab" class="tab-content hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">📈 รายงานและกราฟ</h3>
+                    <div class="flex gap-2">
+                        <button id="refresh-charts-btn" class="btn-secondary">
+                            <i class="fas fa-sync-alt mr-1"></i>รีเฟรช
+                        </button>
+                        <button id="export-charts-btn" class="btn-secondary">
+                            <i class="fas fa-download mr-1"></i>ส่งออกกราฟ
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Charts will be lazy loaded -->
+                <div id="charts-container">
+                    <div id="charts-loading" class="text-center py-12">
+                        <div class="spinner mx-auto mb-4"></div>
+                        <p>กำลังโหลดกราฟ...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Priority Students Tab -->
+            <div id="priority-tab" class="tab-content hidden">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">🚨 นักเรียนที่ต้องดูแลเป็นพิเศษ</h3>
+                
+                <div id="priority-students" class="space-y-4">
+                    <!-- Priority students will be populated here -->
+                </div>
+                
+                <div id="priority-empty" class="text-center py-12 hidden">
+                    <i class="fas fa-thumbs-up text-6xl text-green-300 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-green-600 mb-2">ยอดเยี่ยม!</h3>
+                    <p class="text-green-500">ไม่มีนักเรียนที่ต้องดูแลเป็นพิเศษในขณะนี้</p>
+                </div>
+            </div>
+
+            <!-- New History Tab -->
+            <div id="history-tab" class="tab-content hidden">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">📋 ประวัติการประเมิน</h3>
+                
+                <div id="history-content">
+                    <!-- History content will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enhanced Assessment Results Modal -->
+    <div id="results-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">ผลการประเมิน SDQ</h2>
+                <button id="close-results-btn" class="text-gray-500 hover:text-gray-700 text-2xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div id="results-content">
+                <!-- Results will be populated here -->
+            </div>
+            
+            <div class="flex justify-end gap-3 mt-6">
+                <button id="print-results-btn" class="btn-success">
+                    <i class="fas fa-print mr-2"></i>พิมพ์ผล
+                </button>
+                <button id="export-results-pdf-btn" class="btn-secondary">
+                    <i class="fas fa-file-pdf mr-2"></i>ส่งออก PDF
+                </button>
+                <button id="close-results-modal-btn" class="btn-secondary">ปิด</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Assessment Modal -->
+    <div id="bulk-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">ประเมินหลายคนพร้อมกัน</h2>
+                <button id="close-bulk-btn" class="text-gray-500 hover:text-gray-700 text-2xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div id="bulk-content">
+                <!-- Bulk assessment content will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom JavaScript -->
+    <script src="teacher-dashboard2.js"></script>
+</body>
+</html>
