@@ -4338,6 +4338,34 @@ function createRecommendationSection(totalInterpretation, status) {
 }
 
 // ============================
+// STUDENT ASSESSMENT HANDLERS
+// ============================
+
+/**
+ * จัดการการเลือกนักเรียนสำหรับประเมิน
+ * @param {Event} e - Event object
+ */
+function handleStudentSelection(e) {
+    const studentId = e.target.value;
+    console.log('Student selection changed:', studentId);
+    
+    if (studentId) {
+        const success = showAssessmentQuestions(studentId);
+        if (success) {
+            showNotification('เลือกนักเรียนเรียบร้อย กรุณาทำการประเมิน', 'success');
+        }
+    } else {
+        // ซ่อนส่วนคำถาม
+        const questionsSection = document.getElementById('assessment-questions');
+        if (questionsSection) {
+            questionsSection.classList.add('hidden');
+        }
+        currentAssessmentStudent = null;
+        assessmentAnswers = [];
+    }
+}
+
+// ============================
 // GLOBAL WINDOW FUNCTIONS (Updated)
 // ============================
 
