@@ -520,11 +520,12 @@ function handleError(error, context = '') {
         message = 'การเชื่อมต่อล่าช้า กรุณาลองใหม่อีกครั้ง';
     } else if (error.message.includes('network') || error.message.includes('fetch')) {
         message = 'ปัญหาการเชื่อมต่อเครือข่าย กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต';
-    } else if (error.message.includes('Session หมดอายุ')) {
+    } else if (error.message.includes('Session หมดอายุ') || error.message.includes('authentication')) {
         message = 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่';
-        setTimeout(() => {
-            redirectToLogin();
-        }, 2000);
+        // ไม่ redirect ที่นี่ เพราะจะทำใน loadStudents แล้ว
+        return;
+    } else if (error.message) {
+        message = error.message;
     }
     
     showError(message);
@@ -550,15 +551,63 @@ setInterval(clearExpiredCache, 60000); // Every minute
  * @returns {boolean} - true ถ้ามี session, false ถ้าไม่มี
  */
 function getCurrentUser() {
-    const userData = localStorage.getItem('sdq_user') || sessionStorage.getItem('sdq_user');
-    const sessionId = localStorage.getItem('sdq_session') || sessionStorage.getItem('sdq_session');
-    
-    if (userData && sessionId) {
-        currentUser = JSON.parse(userData);
-        currentSession = sessionId;
-        return true;
+    try {
+        const userData = localStorage.getItem('sdq_user') || sessionStorage.getItem('sdq_user');
+        const sessionId = localStorage.getItem('sdq_session') || sessionStorage.getItem('sdq_session');
+        const sessionExpiry = localStorage.getItem('sdq_session_expiry') || sessionStorage.getItem('sdq_session_expiry');
+        
+        console.log('Checking current user:', { userData: !!userData, sessionId: !!sessionId, sessionExpiry });
+        
+        if (userData && sessionId) {
+            // ตรวจสอบ session expiry ถ้ามี
+            if (sessionExpiry) {
+                const expiryTime = parseInt(sessionExpiry);
+                const now = Date.now();
+                if (now > expiryTime) {
+                    console.log('Session expired, clearing data');
+                    clearUserSession();
+                    return false;
+                }
+            }
+            
+            try {
+                currentUser = JSON.parse(userData);
+                currentSession = sessionId;
+                
+                // ตรวจสอบว่าข้อมูล user มีข้อมูลที่จำเป็น
+                if (!currentUser.role || !currentUser.fullName) {
+                    console.warn('Incomplete user data, treating as invalid session');
+                    clearUserSession();
+                    return false;
+                }
+                
+                console.log('User session valid:', currentUser.fullName, currentUser.role);
+                return true;
+            } catch (parseError) {
+                console.error('Error parsing user data:', parseError);
+                clearUserSession();
+                return false;
+            }
+        }
+        
+        console.log('No valid session found');
+        return false;
+    } catch (error) {
+        console.error('Error in getCurrentUser:', error);
+        return false;
     }
-    return false;
+}
+
+// 2. เพิ่มฟังก์ชันล้าง session (เพิ่มหลัง getCurrentUser)
+function clearUserSession() {
+    localStorage.removeItem('sdq_session');
+    localStorage.removeItem('sdq_user');
+    localStorage.removeItem('sdq_session_expiry');
+    sessionStorage.removeItem('sdq_session');
+    sessionStorage.removeItem('sdq_user');
+    sessionStorage.removeItem('sdq_session_expiry');
+    currentUser = null;
+    currentSession = null;
 }
 
 /**
@@ -774,26 +823,62 @@ async function loadStudents() {
         showSkeletonLoading('students-grid', 6);
         showLoading(true, "กำลังโหลดข้อมูลนักเรียน...", 'data');
         
+        // ตรวจสอบ session อีกครั้งก่อนเรียก API
+        if (!currentUser || !currentSession) {
+            throw new Error('ไม่มีข้อมูลการเข้าสู่ระบบ กรุณาเข้าสู่ระบบใหม่');
+        }
+        
+        console.log('Loading students for user:', currentUser.fullName);
+        
         // Check cache first
-        const cacheKey = `students_${currentUser.id}_${new Date().getFullYear() + 543}`;
+        const cacheKey = `students_${currentUser.id || currentUser.username}_${new Date().getFullYear() + 543}`;
         let studentsData = getCache(cacheKey);
         
         if (!studentsData) {
-            const response = await makeJSONPRequest('getStudentsForUser', {
+            console.log('No cached data, fetching from server...');
+            
+            // สร้าง request data
+            const requestData = {
                 sessionId: currentSession,
-                academicYear: new Date().getFullYear() + 543
-            });
+                academicYear: new Date().getFullYear() + 543,
+                userId: currentUser.id || currentUser.username,
+                userRole: currentUser.role
+            };
+            
+            console.log('Request data:', requestData);
+            
+            const response = await makeJSONPRequest('getStudentsForUser', requestData, false);
+            
+            console.log('Server response:', response);
             
             if (response && response.success) {
                 studentsData = response.students || [];
-                setCache(cacheKey, studentsData, 10 * 60 * 1000); // Cache for 10 minutes
+                // Cache เฉพาะเมื่อมีข้อมูล
+                if (studentsData.length > 0) {
+                    setCache(cacheKey, studentsData, 10 * 60 * 1000); // Cache for 10 minutes
+                }
             } else {
-                throw new Error(response?.message || 'Failed to load students');
+                // ตรวจสอบประเภทของ error
+                if (response && response.message) {
+                    if (response.message.includes('Session') || response.message.includes('หมดอายุ') || response.message.includes('authentication')) {
+                        clearUserSession();
+                        throw new Error('Session หมดอายุ กรุณาเข้าสู่ระบบใหม่');
+                    } else {
+                        throw new Error(response.message);
+                    }
+                } else {
+                    throw new Error('ไม่สามารถโหลดข้อมูลนักเรียนได้');
+                }
             }
+        } else {
+            console.log('Using cached student data');
         }
         
         allStudents = studentsData;
-        console.log(`Loaded ${allStudents.length} students`);
+        console.log(`✅ Loaded ${allStudents.length} students`);
+        
+        // บันทึกข้อมูลสำหรับใช้งาน offline
+        saveOfflineData('students', studentsData);
         
         // Smart class selector update
         await updateClassSelectorSmart();
@@ -823,15 +908,33 @@ async function loadStudents() {
         
     } catch (error) {
         showLoading(false);
+        console.error('Error in loadStudents:', error);
+        
+        // ตรวจสอบว่าเป็น session error หรือไม่
+        if (error.message.includes('Session หมดอายุ') || error.message.includes('authentication') || error.message.includes('ไม่มีข้อมูลการเข้าสู่ระบบ')) {
+            // Redirect to login
+            await showError('Session หมดอายุ กำลังไปยังหน้าเข้าสู่ระบบ...');
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 2000);
+            return;
+        }
+        
         handleError(error, 'loadStudents');
         
         // Show offline data if available
         const offlineData = getOfflineData('students');
-        if (offlineData) {
+        if (offlineData && offlineData.length > 0) {
+            console.log('Using offline data as fallback');
             allStudents = offlineData;
             filterStudentsByClass();
             displayStudentsAnimated();
             showNotification('แสดงข้อมูลออฟไลน์', 'warning');
+        } else {
+            // แสดง empty state
+            allStudents = [];
+            filteredStudents = [];
+            displayStudentsAnimated();
         }
     }
 }
@@ -4122,11 +4225,24 @@ function setupEventListeners() {
 
 async function initializeData() {
     try {
+        console.log('Initializing data for user:', currentUser);
+        
+        // ตรวจสอบข้อมูล user อีกครั้ง
+        if (!currentUser || !currentUser.role) {
+            throw new Error('ข้อมูลผู้ใช้ไม่ครบถ้วน');
+        }
+        
+        if (currentUser.role !== 'TEACHER') {
+            throw new Error('สิทธิ์การเข้าถึงไม่ถูกต้อง');
+        }
+        
         // Load students with caching
         await loadStudents();
         
         // Initialize charts loader
         chartsLoader.loaded = false;
+        
+        console.log('✅ Data initialization completed');
         
     } catch (error) {
         console.error('Failed to load initial data:', error);
