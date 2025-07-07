@@ -1259,6 +1259,650 @@ function highlightSearchTerm(text) {
     return text.replace(regex, '<span class="search-highlight">$1</span>');
 }
 
+// Teacher Dashboard JavaScript - Improved Part 2: Enhanced UI Functions & Smart Data Management
+
+// ============================
+// ENHANCED UTILITY FUNCTIONS
+// ============================
+
+/**
+ * Enhanced SweetAlert with consistent styling
+ * @param {string} message - Message to display
+ * @param {string} title - Alert title
+ * @param {string} icon - Alert icon
+ * @param {object} options - Additional options
+ */
+function showAlert(message, title = "", icon = "info", options = {}) {
+    const defaultOptions = {
+        confirmButtonText: 'ตกลง',
+        confirmButtonColor: '#10b981',
+        allowOutsideClick: false,
+        allowEscapeKey: true,
+        showCloseButton: true,
+        customClass: {
+            popup: 'rounded-xl shadow-2xl',
+            title: 'text-lg font-semibold',
+            content: 'text-gray-600',
+            confirmButton: 'rounded-lg px-6 py-2 font-medium'
+        }
+    };
+    
+    return Swal.fire({
+        icon,
+        title,
+        text: message,
+        ...defaultOptions,
+        ...options
+    });
+}
+
+/**
+ * Enhanced success notification
+ */
+function showSuccess(message, title = "สำเร็จ!") {
+    return showAlert(message, title, 'success', {
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false
+    });
+}
+
+/**
+ * Enhanced error notification
+ */
+function showError(message, title = "เกิดข้อผิดพลาด!") {
+    return showAlert(message, title, 'error', {
+        confirmButtonColor: '#ef4444'
+    });
+}
+
+/**
+ * Enhanced confirmation dialog
+ */
+function showConfirm(message, title = "ยืนยันการดำเนินการ", options = {}) {
+    return showAlert(message, title, 'question', {
+        showCancelButton: true,
+        confirmButtonText: 'ยืนยัน',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#3b82f6',
+        cancelButtonColor: '#6b7280',
+        reverseButtons: true,
+        ...options
+    });
+}
+
+// ============================
+// SMART DATA MANAGEMENT
+// ============================
+
+/**
+ * Enhanced student data loading with smart caching
+ */
+async function loadStudents() {
+    try {
+        performance.mark('loadStudents-start');
+        showSkeletonLoading('students-grid', 6);
+        showLoading(true, "กำลังโหลดข้อมูลนักเรียน...", 'data');
+        
+        // Check cache first
+        const cacheKey = `students_${currentUser.id}_${new Date().getFullYear() + 543}`;
+        let studentsData = getCache(cacheKey);
+        
+        if (!studentsData) {
+            const response = await makeJSONPRequest('getStudentsForUser', {
+                sessionId: currentSession,
+                academicYear: new Date().getFullYear() + 543
+            });
+            
+            if (response && response.success) {
+                studentsData = response.students || [];
+                setCache(cacheKey, studentsData, 10 * 60 * 1000); // Cache for 10 minutes
+            } else {
+                throw new Error(response?.message || 'Failed to load students');
+            }
+        }
+        
+        allStudents = studentsData;
+        console.log(`Loaded ${allStudents.length} students`);
+        
+        // Smart class selector update
+        await updateClassSelectorSmart();
+        
+        // Initialize with first available class if none selected
+        if (!currentClass && allStudents.length > 0) {
+            const availableClasses = getAvailableClasses();
+            if (availableClasses.length > 0) {
+                currentClass = availableClasses[0];
+                document.getElementById('class-selector').value = currentClass;
+            }
+        }
+        
+        // Progressive data loading
+        filterStudentsByClass();
+        await loadIndividualAssessmentsSmart();
+        
+        // Update UI with animation
+        updateStatisticsAnimated();
+        populateStudentSelectSmart();
+        displayStudentsAnimated();
+        
+        performance.mark('loadStudents-end');
+        performance.measure('loadStudents', 'loadStudents-start', 'loadStudents-end');
+        
+        showLoading(false);
+        
+    } catch (error) {
+        showLoading(false);
+        handleError(error, 'loadStudents');
+        
+        // Show offline data if available
+        const offlineData = getOfflineData('students');
+        if (offlineData) {
+            allStudents = offlineData;
+            filterStudentsByClass();
+            displayStudentsAnimated();
+            showNotification('แสดงข้อมูลออฟไลน์', 'warning');
+        }
+    }
+}
+
+/**
+ * Smart class selector update with user preferences
+ */
+async function updateClassSelectorSmart() {
+    const selector = document.getElementById('class-selector');
+    const availableClasses = getAvailableClasses();
+    
+    // Save current selection
+    const currentSelection = selector.value;
+    
+    // Update options with animation
+    selector.style.opacity = '0.5';
+    
+    setTimeout(() => {
+        selector.innerHTML = '<option value="">ทุกชั้นเรียน</option>';
+        
+        availableClasses.forEach(className => {
+            const option = document.createElement('option');
+            option.value = className;
+            option.textContent = className;
+            
+            // Mark assigned classes
+            if (currentUser.assignedClasses?.includes(className)) {
+                option.textContent += ' ⭐';
+            }
+            
+            selector.appendChild(option);
+        });
+        
+        // Restore selection or use smart default
+        if (availableClasses.includes(currentSelection)) {
+            selector.value = currentSelection;
+        } else if (currentUser.assignedClasses?.length > 0) {
+            const firstAssigned = currentUser.assignedClasses.find(c => availableClasses.includes(c));
+            if (firstAssigned) {
+                selector.value = firstAssigned;
+                currentClass = firstAssigned;
+            }
+        }
+        
+        selector.style.opacity = '1';
+    }, 150);
+}
+
+/**
+ * Get available classes with sorting
+ */
+function getAvailableClasses() {
+    const classes = [...new Set(allStudents.map(s => s.class).filter(c => c))];
+    return classes.sort((a, b) => {
+        // Prioritize assigned classes
+        const aAssigned = currentUser.assignedClasses?.includes(a);
+        const bAssigned = currentUser.assignedClasses?.includes(b);
+        
+        if (aAssigned && !bAssigned) return -1;
+        if (!aAssigned && bAssigned) return 1;
+        
+        // Then sort naturally
+        return a.localeCompare(b, 'th', { numeric: true });
+    });
+}
+
+/**
+ * Smart individual assessments loading with batching
+ */
+async function loadIndividualAssessmentsSmart() {
+    if (filteredStudents.length === 0) return;
+    
+    console.log('Loading assessments for', filteredStudents.length, 'students');
+    
+    // Clear existing assessments
+    filteredStudents.forEach(student => {
+        delete student.latestAssessment;
+    });
+    
+    // Batch loading for better performance
+    const batchSize = 5;
+    const batches = [];
+    
+    for (let i = 0; i < filteredStudents.length; i += batchSize) {
+        batches.push(filteredStudents.slice(i, i + batchSize));
+    }
+    
+    let loadedCount = 0;
+    
+    for (const batch of batches) {
+        const promises = batch.map(async (student) => {
+            try {
+                const cacheKey = `assessment_${student.id}`;
+                let assessmentData = getCache(cacheKey);
+                
+                if (!assessmentData) {
+                    const response = await makeJSONPRequest('getAssessmentResultsForUser', {
+                        sessionId: currentSession,
+                        studentId: student.id,
+                        evaluatorType: 'all'
+                    }, false); // Don't cache empty results
+                    
+                    if (response && response.success && response.data) {
+                        assessmentData = response.data;
+                        setCache(cacheKey, assessmentData, 5 * 60 * 1000);
+                    }
+                }
+                
+                student.latestAssessment = assessmentData;
+                loadedCount++;
+                
+                // Update progress
+                const progress = Math.round((loadedCount / filteredStudents.length) * 100);
+                const loadingText = document.getElementById('loading-text');
+                if (loadingText) {
+                    loadingText.innerHTML = `
+                        <i class="fas fa-download mr-2"></i>
+                        กำลังโหลดข้อมูลการประเมิน... ${progress}%
+                    `;
+                }
+                
+            } catch (error) {
+                console.error(`Failed to load assessment for student ${student.id}:`, error);
+                student.latestAssessment = null;
+            }
+        });
+        
+        await Promise.all(promises);
+        
+        // Small delay between batches to prevent overwhelming
+        if (batches.indexOf(batch) < batches.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+    }
+    
+    // Update allStudents with new data
+    filteredStudents.forEach(filteredStudent => {
+        const studentInAll = allStudents.find(s => s.id === filteredStudent.id);
+        if (studentInAll) {
+            studentInAll.latestAssessment = filteredStudent.latestAssessment;
+        }
+    });
+    
+    console.log(`✅ Assessments loaded for ${loadedCount} students`);
+}
+
+// ============================
+// ENHANCED UI FUNCTIONS
+// ============================
+
+/**
+ * Animated statistics update
+ */
+function updateStatisticsAnimated() {
+    const totalStudents = filteredStudents.length;
+    let assessedStudents = 0;
+    let riskStudents = 0;
+    let problemStudents = 0;
+    
+    filteredStudents.forEach(student => {
+        const assessment = getLatestAssessment(student.id);
+        if (assessment && assessment.scores) {
+            assessedStudents++;
+            const status = getAssessmentStatus(assessment);
+            if (status === 'risk') riskStudents++;
+            else if (status === 'problem') problemStudents++;
+        }
+    });
+    
+    // Animate numbers
+    animateNumber('total-students', totalStudents);
+    animateNumber('assessed-students', assessedStudents);
+    animateNumber('risk-students', riskStudents);
+    animateNumber('problem-students', problemStudents);
+    
+    console.log(`Statistics: Total=${totalStudents}, Assessed=${assessedStudents}, Risk=${riskStudents}, Problem=${problemStudents}`);
+}
+
+/**
+ * Animate number counting
+ * @param {string} elementId - Element ID
+ * @param {number} targetValue - Target number
+ */
+function animateNumber(elementId, targetValue) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    const startValue = parseInt(element.textContent) || 0;
+    const duration = 1000;
+    const startTime = performance.now();
+    
+    function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Easing function
+        const easeOut = 1 - Math.pow(1 - progress, 3);
+        const currentValue = Math.round(startValue + (targetValue - startValue) * easeOut);
+        
+        element.textContent = currentValue;
+        
+        if (progress < 1) {
+            requestAnimationFrame(update);
+        }
+    }
+    
+    requestAnimationFrame(update);
+}
+
+/**
+ * Smart student selector population
+ */
+function populateStudentSelectSmart() {
+    const select = document.getElementById('student-select');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">-- เลือกนักเรียนที่ต้องการประเมิน --</option>';
+    
+    // Group students by assessment status
+    const groups = {
+        notAssessed: [],
+        problem: [],
+        risk: [],
+        normal: []
+    };
+    
+    filteredStudents.forEach(student => {
+        const assessment = getLatestAssessment(student.id);
+        const status = assessment ? getAssessmentStatus(assessment) : 'not-assessed';
+        
+        if (status === 'not-assessed') groups.notAssessed.push(student);
+        else if (status === 'problem') groups.problem.push(student);
+        else if (status === 'risk') groups.risk.push(student);
+        else groups.normal.push(student);
+    });
+    
+    // Add grouped options
+    const addGroup = (groupName, students, emoji) => {
+        if (students.length === 0) return;
+        
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = `${emoji} ${groupName} (${students.length} คน)`;
+        
+        students.forEach(student => {
+            const option = document.createElement('option');
+            option.value = student.id;
+            option.textContent = `${student.name} (${student.class})`;
+            optgroup.appendChild(option);
+        });
+        
+        select.appendChild(optgroup);
+    };
+    
+    addGroup('ต้องการความสนใจ', groups.problem, '🚨');
+    addGroup('เสี่ยง', groups.risk, '⚠️');
+    addGroup('ยังไม่ได้ประเมิน', groups.notAssessed, '📝');
+    addGroup('ปกติ', groups.normal, '✅');
+}
+
+/**
+ * Enhanced animated student display
+ */
+function displayStudentsAnimated() {
+    const container = document.getElementById('students-grid');
+    const emptyState = document.getElementById('students-empty');
+    const searchTerm = document.getElementById('student-search').value.toLowerCase();
+    
+    let studentsToShow = filteredStudents;
+    
+    // Smart search with multiple criteria
+    if (searchTerm) {
+        studentsToShow = filteredStudents.filter(student => {
+            const matchName = student.name.toLowerCase().includes(searchTerm);
+            const matchClass = student.class?.toLowerCase().includes(searchTerm);
+            const matchId = student.id?.toLowerCase().includes(searchTerm);
+            
+            // Search in assessment status
+            const assessment = getLatestAssessment(student.id);
+            const status = assessment ? getAssessmentStatus(assessment) : 'not-assessed';
+            const statusInfo = getStatusInfo(status);
+            const matchStatus = statusInfo.label.toLowerCase().includes(searchTerm);
+            
+            return matchName || matchClass || matchId || matchStatus;
+        });
+    }
+    
+    // Handle empty state
+    if (studentsToShow.length === 0) {
+        container.classList.add('hidden');
+        emptyState.classList.remove('hidden');
+        emptyState.innerHTML = `
+            <div class="text-center py-12">
+                <i class="fas fa-search text-6xl text-gray-300 mb-4"></i>
+                <h3 class="text-xl font-semibold text-gray-500 mb-2">
+                    ${searchTerm ? 'ไม่พบผลการค้นหา' : 'ไม่พบนักเรียน'}
+                </h3>
+                <p class="text-gray-400">
+                    ${searchTerm ? `ไม่พบนักเรียนที่ตรงกับ "${searchTerm}"` : 'ยังไม่มีนักเรียนในชั้นเรียนที่เลือก'}
+                </p>
+                ${searchTerm ? '<button onclick="document.getElementById(\'student-search\').value=\'\'; displayStudentsAnimated();" class="mt-4 btn-secondary">ล้างการค้นหา</button>' : ''}
+            </div>
+        `;
+        return;
+    }
+    
+    container.classList.remove('hidden');
+    emptyState.classList.add('hidden');
+    
+    // Sort students intelligently
+    studentsToShow.sort((a, b) => {
+        const aAssessment = getLatestAssessment(a.id);
+        const bAssessment = getLatestAssessment(b.id);
+        
+        const aStatus = aAssessment ? getAssessmentStatus(aAssessment) : 'not-assessed';
+        const bStatus = bAssessment ? getAssessmentStatus(bAssessment) : 'not-assessed';
+        
+        // Priority order: problem > risk > not-assessed > normal
+        const statusPriority = { 'problem': 0, 'risk': 1, 'not-assessed': 2, 'normal': 3 };
+        
+        const aPriority = statusPriority[aStatus];
+        const bPriority = statusPriority[bStatus];
+        
+        if (aPriority !== bPriority) {
+            return aPriority - bPriority;
+        }
+        
+        // Then sort by name
+        return a.name.localeCompare(b.name, 'th');
+    });
+    
+    // Clear and rebuild with animation
+    container.innerHTML = '';
+    
+    studentsToShow.forEach((student, index) => {
+        const cardElement = document.createElement('div');
+        cardElement.innerHTML = createEnhancedStudentCard(student);
+        cardElement.style.animationDelay = `${index * 0.1}s`;
+        container.appendChild(cardElement.firstElementChild);
+    });
+    
+    // Trigger animation
+    showProgressiveLoading('students-grid');
+}
+
+/**
+ * Enhanced student card with better information
+ */
+function createEnhancedStudentCard(student) {
+    const assessment = getLatestAssessment(student.id);
+    const status = assessment ? getAssessmentStatus(assessment) : 'not-assessed';
+    const statusInfo = getStatusInfo(status);
+    
+    // Calculate days since last assessment
+    let daysSinceAssessment = '';
+    if (assessment && assessment.timestamp) {
+        const assessmentDate = new Date(assessment.timestamp);
+        const now = new Date();
+        const diffTime = Math.abs(now - assessmentDate);
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 0) daysSinceAssessment = 'วันนี้';
+        else if (diffDays === 1) daysSinceAssessment = 'เมื่อวาน';
+        else daysSinceAssessment = `${diffDays} วันที่แล้ว`;
+    }
+    
+    return `
+        <div class="student-card ${status} smooth-transition" data-student-id="${student.id}">
+            <div class="p-4">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center relative">
+                            <i class="fas fa-user-graduate text-white text-lg"></i>
+                            ${status === 'problem' ? '<div class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>' : ''}
+                            ${status === 'risk' ? '<div class="absolute -top-1 -right-1 w-4 h-4 bg-yellow-500 rounded-full animate-pulse"></div>' : ''}
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="font-semibold text-gray-800 text-lg">${highlightSearchTerm(student.name)}</h4>
+                            <p class="text-sm text-gray-600 flex items-center">
+                                <i class="fas fa-school mr-1"></i>
+                                ${student.class || 'ไม่มีข้อมูลชั้น'}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="status-badge status-${status} mb-1 block">
+                            <i class="${statusInfo.icon} mr-1"></i>${statusInfo.label}
+                        </span>
+                        ${daysSinceAssessment ? `<p class="text-xs text-gray-500">${daysSinceAssessment}</p>` : ''}
+                    </div>
+                </div>
+                
+                ${assessment ? `
+                    <div class="mb-4 bg-gray-50 rounded-lg p-3">
+                        <div class="grid grid-cols-2 gap-2 text-xs">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">คะแนนรวม:</span>
+                                <span class="font-semibold ${status === 'problem' ? 'text-red-600' : status === 'risk' ? 'text-yellow-600' : 'text-green-600'}">
+                                    ${assessment.scores.totalDifficulties || 0}/40
+                                </span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">ประเมินโดย:</span>
+                                <span class="font-medium">${assessment.evaluatorName?.split(' ')[0] || 'ไม่ระบุ'}</span>
+                            </div>
+                        </div>
+                        <div class="mt-2 grid grid-cols-3 gap-1">
+                            <span class="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs text-center">
+                                อารมณ์: ${assessment.scores.emotional || 0}
+                            </span>
+                            <span class="inline-block bg-green-100 text-green-800 px-2 py-1 rounded text-xs text-center">
+                                ประพฤติ: ${assessment.scores.conduct || 0}
+                            </span>
+                            <span class="inline-block bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs text-center">
+                                สมาธิ: ${assessment.scores.hyperactivity || 0}
+                            </span>
+                        </div>
+                    </div>
+                ` : `
+                    <div class="mb-4 bg-gray-50 rounded-lg p-3 text-center">
+                        <i class="fas fa-clipboard-list text-gray-400 text-2xl mb-2"></i>
+                        <p class="text-sm text-gray-600 font-medium">ยังไม่ได้ประเมิน</p>
+                        <p class="text-xs text-gray-500">กรุณาทำการประเมินเพื่อดูรายละเอียด</p>
+                    </div>
+                `}
+                
+                <div class="flex gap-2">
+                    <button onclick="assessStudent('${student.id}')" class="btn-success flex-1 text-sm">
+                        <i class="fas fa-clipboard-check mr-1"></i>
+                        ${assessment ? 'ประเมินใหม่' : 'ประเมิน'}
+                    </button>
+                    ${assessment ? `
+                        <button onclick="viewResults('${student.id}')" class="btn-secondary text-sm">
+                            <i class="fas fa-eye mr-1"></i>
+                            ดูผล
+                        </button>
+                    ` : ''}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// ============================
+// SMART HELPER FUNCTIONS
+// ============================
+
+/**
+ * Enhanced search term highlighting with fuzzy matching
+ */
+function highlightSearchTerm(text) {
+    const searchTerm = document.getElementById('student-search')?.value;
+    if (!searchTerm || !text) return text;
+    
+    const regex = new RegExp(`(${searchTerm.split('').join('.*?')})`, 'gi');
+    return text.replace(regex, '<span class="search-highlight">$1</span>');
+}
+
+/**
+ * Get latest assessment with caching
+ */
+function getLatestAssessment(studentId) {
+    const filteredStudent = filteredStudents.find(s => s.id === studentId);
+    if (filteredStudent && filteredStudent.latestAssessment) {
+        return filteredStudent.latestAssessment;
+    }
+    
+    const student = allStudents.find(s => s.id === studentId);
+    return student ? student.latestAssessment : null;
+}
+
+/**
+ * Enhanced assessment status with detailed criteria
+ */
+function getAssessmentStatus(assessment) {
+    if (!assessment || !assessment.scores) return 'not-assessed';
+    
+    const totalScore = assessment.scores.totalDifficulties;
+    
+    // More nuanced scoring
+    if (totalScore <= 11) return 'normal';
+    if (totalScore <= 15) return 'risk';
+    if (totalScore <= 20) return 'problem';
+    return 'severe'; // For very high scores
+}
+
+/**
+ * Enhanced status information
+ */
+function getStatusInfo(status) {
+    const statusMap = {
+        'normal': { label: 'ปกติ', icon: 'fas fa-check-circle', color: 'green' },
+        'risk': { label: 'เสี่ยง', icon: 'fas fa-exclamation-triangle', color: 'yellow' },
+        'problem': { label: 'มีปัญหา', icon: 'fas fa-exclamation-circle', color: 'red' },
+        'severe': { label: 'ต้องการความช่วยเหลือ', icon: 'fas fa-heart-broken', color: 'red' },
+        'not-assessed': { label: 'ยังไม่ประเมิน', icon: 'fas fa-clock', color: 'gray' }
+    };
+    return statusMap[status] || statusMap['not-assessed'];
+}
+
+console.log('✨ Enhanced UI functions loaded');
+
 /**
  * Get latest assessment with caching
  */
