@@ -3671,6 +3671,82 @@ const chartsLoader = {
     }
 };
 
+
+/**
+ * อัปเดตรายการนักเรียนที่ต้องดูแลเป็นพิเศษ
+ */
+function updatePriorityStudents() {
+    const container = document.getElementById('priority-students');
+    const emptyState = document.getElementById('priority-empty');
+    
+    // กรองนักเรียนที่ต้องดูแลเป็นพิเศษ
+    const priorityStudents = filteredStudents.filter(student => {
+        const assessment = getLatestAssessment(student.id);
+        if (!assessment) return false;
+        
+        const status = getAssessmentStatus(assessment);
+        return status === 'risk' || status === 'problem';
+    });
+    
+    if (priorityStudents.length === 0) {
+        container.classList.add('hidden');
+        emptyState.classList.remove('hidden');
+        return;
+    }
+    
+    container.classList.remove('hidden');
+    emptyState.classList.add('hidden');
+    
+    container.innerHTML = priorityStudents.map(student => {
+        const assessment = getLatestAssessment(student.id);
+        const status = getAssessmentStatus(assessment);
+        const statusInfo = getStatusInfo(status);
+        
+        // สร้างรายการด้านที่มีปัญหา
+        const problemAspects = [];
+        if (assessment.interpretations.emotional !== 'ปกติ') problemAspects.push('ด้านอารมณ์');
+        if (assessment.interpretations.conduct !== 'ปกติ') problemAspects.push('ด้านความประพฤติ');
+        if (assessment.interpretations.hyperactivity !== 'ปกติ') problemAspects.push('ด้านสมาธิ');
+        if (assessment.interpretations.peerProblems !== 'ปกติ') problemAspects.push('ด้านเพื่อน');
+        if (assessment.interpretations.prosocial !== 'ปกติ' && assessment.interpretations.prosocial !== 'จุดแข็ง') {
+            problemAspects.push('ด้านสังคม');
+        }
+        
+        return `
+            <div class="bg-white p-4 rounded-lg border-l-4 ${status === 'problem' ? 'border-red-500' : 'border-yellow-500'} shadow-sm">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 bg-gradient-to-br ${status === 'problem' ? 'from-red-500 to-pink-600' : 'from-yellow-500 to-orange-600'} rounded-full flex items-center justify-center">
+                            <i class="fas fa-user-graduate text-white"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-800">${student.name}</h4>
+                            <p class="text-sm text-gray-600">${student.class}</p>
+                            <p class="text-sm text-gray-500">คะแนนรวม: ${assessment.scores.totalDifficulties}/40</p>
+                            ${problemAspects.length > 0 ? `<p class="text-xs text-red-600 mt-1">⚠️ ${problemAspects.join(', ')}</p>` : ''}
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="status-badge status-${status} mb-2 block">
+                            <i class="${statusInfo.icon} mr-1"></i>${statusInfo.label}
+                        </span>
+                        <div class="flex gap-2">
+                            <button onclick="viewResults('${student.id}')" class="btn-secondary text-xs">
+                                <i class="fas fa-eye mr-1"></i>ดูผล
+                            </button>
+                            <button onclick="assessStudent('${student.id}')" class="btn-success text-xs">
+                                <i class="fas fa-clipboard-check mr-1"></i>ประเมินใหม่
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+
+
 // ============================
 // ENHANCED EXPORT FUNCTIONS
 // ============================
