@@ -508,38 +508,101 @@ console.log('🚀 Enhanced utilities loaded successfully!');
  * Enhanced user authentication with session management
  * @returns {boolean} - true ถ้ามี session ที่ถูกต้อง
  */
+/**
+ * Enhanced user authentication with better compatibility
+ * @returns {boolean} - true ถ้ามี session ที่ถูกต้อง
+ */
 function getCurrentUser() {
     try {
-        const userData = localStorage.getItem('sdq_user') || sessionStorage.getItem('sdq_user');
-        const sessionId = localStorage.getItem('sdq_session') || sessionStorage.getItem('sdq_session');
-        const sessionExpiry = localStorage.getItem('sdq_session_expiry') || sessionStorage.getItem('sdq_session_expiry');
+        console.log('🔍 Checking user authentication...');
         
-        if (userData && sessionId && sessionExpiry) {
-            // Check if session is expired
+        // ลองหาข้อมูลจากหลายแหล่ง
+        let userData = null;
+        let sessionId = null;
+        let sessionExpiry = null;
+        
+        // ตรวจสอบ localStorage ก่อน
+        const localUser = localStorage.getItem('sdq_user');
+        const localSession = localStorage.getItem('sdq_session');
+        const localExpiry = localStorage.getItem('sdq_session_expiry');
+        
+        // ตรวจสอบ sessionStorage
+        const sessionUser = sessionStorage.getItem('sdq_user');
+        const sessionSession = sessionStorage.getItem('sdq_session');
+        const sessionSessionExpiry = sessionStorage.getItem('sdq_session_expiry');
+        
+        // เลือกข้อมูลที่มีครบ
+        if (localUser && localSession) {
+            userData = localUser;
+            sessionId = localSession;
+            sessionExpiry = localExpiry;
+            console.log('✅ Found user data in localStorage');
+        } else if (sessionUser && sessionSession) {
+            userData = sessionUser;
+            sessionId = sessionSession;
+            sessionExpiry = sessionSessionExpiry;
+            console.log('✅ Found user data in sessionStorage');
+        }
+        
+        // ถ้าไม่พบข้อมูลเลย
+        if (!userData || !sessionId) {
+            console.log('❌ No user data found');
+            return false;
+        }
+        
+        // ตรวจสอบ session expiry (ถ้ามี)
+        if (sessionExpiry) {
             const now = Date.now();
             const expiry = parseInt(sessionExpiry);
             
             if (now > expiry) {
-                console.log('Session expired, clearing data');
+                console.log('❌ Session expired, clearing data');
                 clearAuthData();
                 return false;
             }
-            
-            currentUser = JSON.parse(userData);
-            currentSession = sessionId;
-            
-            // Auto-refresh session if close to expiry (15 minutes before)
-            const timeToExpiry = expiry - now;
-            if (timeToExpiry < 15 * 60 * 1000) {
-                refreshSession();
-            }
-            
-            return true;
+            console.log('✅ Session is still valid');
         }
         
-        return false;
+        // Parse user data
+        let user;
+        try {
+            user = JSON.parse(userData);
+        } catch (parseError) {
+            console.error('❌ Error parsing user data:', parseError);
+            clearAuthData();
+            return false;
+        }
+        
+        // ตรวจสอบว่าเป็นครูหรือไม่
+        if (!user.role || user.role !== 'TEACHER') {
+            console.log('❌ User is not a teacher:', user.role);
+            return false;
+        }
+        
+        // บันทึกข้อมูลในตัวแปร global
+        currentUser = user;
+        currentSession = sessionId;
+        
+        console.log('✅ Authentication successful:', {
+            username: user.username,
+            role: user.role,
+            fullName: user.fullName,
+            school: user.school
+        });
+        
+        // Auto-refresh session ถ้าใกล้หมดอายุ (15 นาทีก่อน)
+        if (sessionExpiry) {
+            const timeToExpiry = parseInt(sessionExpiry) - Date.now();
+            if (timeToExpiry < 15 * 60 * 1000 && timeToExpiry > 0) {
+                console.log('🔄 Session will expire soon, scheduling refresh...');
+                setTimeout(refreshSession, 1000);
+            }
+        }
+        
+        return true;
+        
     } catch (error) {
-        console.error('Error getting current user:', error);
+        console.error('❌ Error in getCurrentUser:', error);
         clearAuthData();
         return false;
     }
@@ -596,12 +659,100 @@ async function refreshSession() {
 // }
 
 /**
- * เปลี่ยนเส้นทางไปหน้า login
+ * แก้ไขฟังก์ชัน redirectToLogin เพื่อให้ debug ง่ายขึ้น
  */
 function redirectToLogin() {
-    showError('กรุณาเข้าสู่ระบบใหม่').then(() => {
+    console.log('🔄 Redirecting to login...');
+    
+    // แสดงข้อมูล debug
+    console.log('Debug info:', {
+        localStorage_user: localStorage.getItem('sdq_user') ? 'EXISTS' : 'NULL',
+        localStorage_session: localStorage.getItem('sdq_session') ? 'EXISTS' : 'NULL',
+        sessionStorage_user: sessionStorage.getItem('sdq_user') ? 'EXISTS' : 'NULL',
+        sessionStorage_session: sessionStorage.getItem('sdq_session') ? 'EXISTS' : 'NULL',
+        currentUser: currentUser,
+        currentSession: currentSession
+    });
+    
+    // บันทึกสถานะปัจจุบันเพื่อกลับมาหลัง login
+    const currentState = {
+        tab: document.querySelector('.tab.active')?.dataset.tab || 'students',
+        class: currentClass,
+        search: document.getElementById('student-search')?.value || '',
+        timestamp: Date.now()
+    };
+    
+    saveToStorage('sdq_return_state', currentState, 10 * 60 * 1000); // 10 minutes
+    
+    showError('กรุณาเข้าสู่ระบบใหม่ หรือตรวจสอบสิทธิ์การเข้าถึง').then(() => {
         window.location.href = 'login.html';
     });
+}
+
+/**
+ * เพิ่มฟังก์ชัน debug สำหรับตรวจสอบ auth
+ */
+function debugAuth() {
+    console.log('=== AUTH DEBUG INFO ===');
+    console.log('localStorage items:');
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('sdq_')) {
+            const value = localStorage.getItem(key);
+            console.log(`  ${key}:`, value ? value.substring(0, 100) + '...' : 'NULL');
+        }
+    }
+    
+    console.log('sessionStorage items:');
+    for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key.startsWith('sdq_')) {
+            const value = sessionStorage.getItem(key);
+            console.log(`  ${key}:`, value ? value.substring(0, 100) + '...' : 'NULL');
+        }
+    }
+    
+    console.log('Current variables:');
+    console.log('  currentUser:', currentUser);
+    console.log('  currentSession:', currentSession);
+    console.log('=======================');
+}
+
+/**
+ * ฟังก์ชันทดสอบ authentication แบบ manual
+ */
+function testAuth() {
+    console.log('🧪 Testing authentication...');
+    
+    // ลองสร้างข้อมูลทดสอบ
+    const testUser = {
+        username: 'teacher_test',
+        fullName: 'ครูทดสอบ',
+        role: 'TEACHER',
+        school: 'โรงเรียนทดสอบ',
+        assignedClasses: ['ม.1/1', 'ม.1/2']
+    };
+    
+    const testSession = 'test_session_' + Date.now();
+    const testExpiry = Date.now() + (24 * 60 * 60 * 1000); // 24 hours
+    
+    // บันทึกลง localStorage
+    localStorage.setItem('sdq_user', JSON.stringify(testUser));
+    localStorage.setItem('sdq_session', testSession);
+    localStorage.setItem('sdq_session_expiry', testExpiry.toString());
+    
+    console.log('✅ Test data created, trying authentication...');
+    
+    // ทดสอบ
+    const result = getCurrentUser();
+    console.log('Authentication result:', result);
+    
+    if (result) {
+        console.log('🎉 Test authentication successful!');
+        location.reload(); // Reload page to test
+    } else {
+        console.log('❌ Test authentication failed');
+    }
 }
 
 // ============================
@@ -4193,6 +4344,31 @@ function displayInitializationStatus() {
 
 // Additional initialization when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
+
+    console.log('🎓 Initializing Enhanced Teacher Dashboard...');
+    
+    // เพิ่ม debug info
+    debugAuth();
+    
+    // Check authentication with detailed logging
+    if (!getCurrentUser()) {
+        console.log('❌ Authentication failed, redirecting to login...');
+        redirectToLogin();
+        return;
+    }
+    
+    console.log('✅ Authentication successful, continuing initialization...');
+    
+    // Check teacher role (ย้ายมาหลัง getCurrentUser แล้ว)
+    if (!currentUser || currentUser.role !== 'TEACHER') {
+        console.log('❌ User is not a teacher or role invalid:', currentUser?.role);
+        showError('หน้านี้สำหรับครูเท่านั้น').then(() => {
+            window.location.href = 'index.html';
+        });
+        return;
+    }
+    
+    console.log('✅ User role verified as TEACHER');
     // Initialize performance monitoring
     initializePerformanceMonitoring();
     
