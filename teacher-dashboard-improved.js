@@ -511,6 +511,136 @@ window.addEventListener('offline', checkOnlineStatus);
 // Clear cache periodically
 setInterval(clearExpiredCache, 60000); // Every minute
 
+// ============================
+// AUTHENTICATION FUNCTIONS
+// ============================
+
+/**
+ * ตรวจสอบข้อมูลผู้ใช้ปัจจุบัน
+ * @returns {boolean} - true ถ้ามี session, false ถ้าไม่มี
+ */
+function getCurrentUser() {
+    const userData = localStorage.getItem('sdq_user') || sessionStorage.getItem('sdq_user');
+    const sessionId = localStorage.getItem('sdq_session') || sessionStorage.getItem('sdq_session');
+    
+    if (userData && sessionId) {
+        currentUser = JSON.parse(userData);
+        currentSession = sessionId;
+        return true;
+    }
+    return false;
+}
+
+/**
+ * เปลี่ยนเส้นทางไปหน้า login
+ */
+function redirectToLogin() {
+    showError('กรุณาเข้าสู่ระบบใหม่').then(() => {
+        window.location.href = 'login.html';
+    });
+}
+
+// ============================
+// DATE FORMATTING FUNCTIONS
+// ============================
+
+/**
+ * จัดรูปแบบวันที่เป็นภาษาไทย
+ * @param {string|Date} dateString - วันที่ที่ต้องการจัดรูปแบบ
+ * @returns {string} - วันที่ในรูปแบบภาษาไทย
+ */
+function formatDate(dateString) {
+    if (!dateString) return 'ไม่ทราบ';
+    
+    try {
+        let date;
+        
+        if (dateString instanceof Date) {
+            date = dateString;
+        } else if (typeof dateString === 'string' && dateString.includes('กรกฎาคม')) {
+            const thaiToEng = convertThaiDateToEnglish(dateString);
+            date = new Date(thaiToEng);
+        } else if (typeof dateString === 'string') {
+            date = new Date(dateString);
+            
+            if (isNaN(date.getTime())) {
+                const datePatterns = [
+                    /(\d{1,2})\/(\d{1,2})\/(\d{4})/,
+                    /(\d{1,2})-(\d{1,2})-(\d{4})/,
+                    /(\d{4})-(\d{1,2})-(\d{1,2})/
+                ];
+                
+                for (let pattern of datePatterns) {
+                    const match = dateString.match(pattern);
+                    if (match) {
+                        if (pattern === datePatterns[2]) {
+                            date = new Date(match[1], match[2] - 1, match[3]);
+                        } else {
+                            date = new Date(match[3], match[2] - 1, match[1]);
+                        }
+                        break;
+                    }
+                }
+            }
+        } else if (typeof dateString === 'number') {
+            date = new Date(dateString);
+        } else {
+            return 'รูปแบบวันที่ไม่รู้จัก';
+        }
+        
+        if (!date || isNaN(date.getTime())) {
+            return 'วันที่ไม่ถูกต้อง';
+        }
+        
+        return date.toLocaleDateString('th-TH', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+        
+    } catch (error) {
+        console.error('Error formatting date:', error);
+        return 'ข้อผิดพลาดในการแปลงวันที่';
+    }
+}
+
+/**
+ * แปลงวันที่ภาษาไทยเป็นภาษาอังกฤษ
+ * @param {string} thaiDateString - วันที่ภาษาไทย
+ * @returns {string|null} - วันที่ภาษาอังกฤษ หรือ null ถ้าแปลงไม่ได้
+ */
+function convertThaiDateToEnglish(thaiDateString) {
+    try {
+        const thaiMonths = {
+            'มกราคม': 'January', 'กุมภาพันธ์': 'February', 'มีนาคม': 'March',
+            'เมษายน': 'April', 'พฤษภาคม': 'May', 'มิถุนายน': 'June',
+            'กรกฎาคม': 'July', 'สิงหาคม': 'August', 'กันยายน': 'September',
+            'ตุลาคม': 'October', 'พฤศจิกายน': 'November', 'ธันวาคม': 'December'
+        };
+        
+        const parts = thaiDateString.trim().split(' ');
+        if (parts.length !== 3) {
+            throw new Error('Invalid Thai date format');
+        }
+        
+        const day = parseInt(parts[0]);
+        const thaiMonth = parts[1];
+        const buddhistYear = parseInt(parts[2]);
+        
+        const englishMonth = thaiMonths[thaiMonth];
+        if (!englishMonth) {
+            throw new Error('Unknown Thai month: ' + thaiMonth);
+        }
+        
+        const christianYear = buddhistYear - 543;
+        return `${englishMonth} ${day}, ${christianYear}`;
+        
+    } catch (error) {
+        console.error('Error converting Thai date:', error);
+        return null;
+    }
+}
+
 // Monitor performance
 const perfObserver = new PerformanceObserver((list) => {
     for (const entry of list.getEntries()) {
@@ -527,6 +657,8 @@ try {
 }
 
 console.log('🚀 Performance optimizations loaded');
+
+
 // Teacher Dashboard JavaScript - Improved Part 2: Enhanced UI Functions & Smart Data Management
 
 // ============================
