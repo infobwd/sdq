@@ -2261,6 +2261,20 @@ function populateStudentSelectSmart() {
     addGroup('ปกติ', groups.normal, '✅');
 }
 
+
+function filterStudentsByClass() {
+    console.log(`Filtering students by class: ${currentClass || 'ทุกชั้น'}`);
+    
+    if (!currentClass) {
+        filteredStudents = [...allStudents];
+    } else {
+        filteredStudents = allStudents.filter(student => student.class === currentClass);
+    }
+    
+    console.log(`Filtered ${filteredStudents.length} students from ${allStudents.length} total`);
+    displayStudentsAnimated();
+}
+
 /**
  * Enhanced animated student display
  */
