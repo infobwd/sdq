@@ -510,11 +510,26 @@
                     // Save session
                     if (rememberMe) {
                         localStorage.setItem('sdq_session', currentSession);
-                        localStorage.setItem('sdq_user', JSON.stringify(currentUser));
+                        // ใน login page หลัง login สำเร็จ ต้องบันทึกแบบนี้:
+                        localStorage.setItem('sdq_user', JSON.stringify({
+                            username: 'username',
+                            fullName: 'ชื่อเต็ม',
+                            role: 'TEACHER',  // สำคัญมาก!
+                            school: 'ชื่อโรงเรียน'
+                        }));
+                        localStorage.setItem('sdq_session', 'session_id');
+                        localStorage.setItem('sdq_session_expiry', (Date.now() + 24*60*60*1000).toString());
                     } else {
                         sessionStorage.setItem('sdq_session', currentSession);
-                        sessionStorage.setItem('sdq_user', JSON.stringify(currentUser));
-                    }
+                        // ใน login page หลัง login สำเร็จ ต้องบันทึกแบบนี้:
+                        localStorage.setItem('sdq_user', JSON.stringify({
+                            username: 'username',
+                            fullName: 'ชื่อเต็ม',
+                            role: 'TEACHER',  // สำคัญมาก!
+                            school: 'ชื่อโรงเรียน'
+                        }));
+                        localStorage.setItem('sdq_session', 'session_id');
+                        localStorage.setItem('sdq_session_expiry', (Date.now() + 24*60*60*1000).toString());                    }
                     
                     await showSuccess('เข้าสู่ระบบสำเร็จ!');
                     await loadMainApplication();
