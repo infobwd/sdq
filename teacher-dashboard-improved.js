@@ -4543,7 +4543,13 @@ function setupEventListeners() {
     document.getElementById('quick-assess-btn').addEventListener('click', () => switchTab('assessment'));
     document.getElementById('view-reports-btn').addEventListener('click', () => switchTab('reports'));
     document.getElementById('export-data-btn').addEventListener('click', () => exportManager.exportData('csv'));
-    
+    document.getElementById('export-pdf-btn')?.addEventListener('click', () => {
+    exportManager.exportData('pdf', {
+        includeDetails: true,
+        includeSummary: true,
+        title: `รายงานการประเมิน SDQ - ${currentClass || 'ทุกชั้นเรียน'}`
+    });
+});
     // Assessment form
     setupAssessmentEventListeners();
     
@@ -4889,6 +4895,11 @@ function showEnhancedAssessmentResults(results) {
 function createEnhancedResultsHTML(results) {
     const status = getAssessmentStatus({ scores: results.scores });
     const statusInfo = getStatusInfo(status);
+        const assessmentDate = exportManager.formatDateForExport(
+        results.studentInfo.timestamp || 
+        results.timestamp || 
+        new Date().toISOString()
+    );
     
     return `
         <div class="space-y-6">
@@ -4901,7 +4912,7 @@ function createEnhancedResultsHTML(results) {
                             <p><strong>ชื่อ:</strong> ${results.studentInfo.name}</p>
                             <p><strong>ชั้น:</strong> ${results.studentInfo.class}</p>
                             <p><strong>ประเมินโดย:</strong> ${results.studentInfo.evaluatorName}</p>
-                            <p><strong>วันที่ประเมิน:</strong> ${results.studentInfo.timestamp}</p>
+                            <p><strong>วันที่ประเมิน:</strong> ${assessmentDate}</p>
                         </div>
                     </div>
                     <div class="text-center">
