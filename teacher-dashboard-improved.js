@@ -3443,119 +3443,90 @@ const chartsLoader = {
      * Enhanced pie chart with animations and interactions
      */
     async createEnhancedPieChart() {
-    const ctx = document.getElementById('assessment-pie-chart');
-    if (!ctx) {
-        console.error('Pie chart canvas not found');
-        return;
-    }
-    
-    // Calculate data with detailed breakdown
-    const stats = this.calculateDetailedStats();
-    
-    console.log('Creating pie chart with stats:', stats);
-    
-    // Destroy existing chart
-    if (window.pieChart) {
-        window.pieChart.destroy();
-    }
-    
-    // ตรวจสอบว่ามีข้อมูลหรือไม่
-    if (stats.total === 0) {
-        ctx.getContext('2d').clearRect(0, 0, ctx.width, ctx.height);
-        const container = ctx.parentElement;
-        container.innerHTML = `
-            <div class="text-center py-8 text-gray-500">
-                <i class="fas fa-chart-pie text-4xl mb-2"></i>
-                <p class="font-medium">ยังไม่มีข้อมูลการประเมิน</p>
-                <p class="text-sm">เริ่มประเมินนักเรียนเพื่อดูกราฟ</p>
-            </div>
-        `;
-        return;
-    }
-    
-    window.pieChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['ปกติ', 'เสี่ยง', 'มีปัญหา', 'ยังไม่ประเมิน'],
-            datasets: [{
-                data: [stats.normal, stats.risk, stats.problem, stats.notAssessed],
-                backgroundColor: [
-                    '#10B981', // Green
-                    '#F59E0B', // Yellow  
-                    '#EF4444', // Red
-                    '#6B7280'  // Gray
-                ],
-                borderWidth: 3,
-                borderColor: '#ffffff',
-                hoverBorderWidth: 5,
-                hoverOffset: 10
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            aspectRatio: 1.5,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        padding: 15,
-                        usePointStyle: true,
-                        pointStyle: 'circle',
-                        font: { size: 12, weight: '500' },
-                        generateLabels: (chart) => {
-                            const data = chart.data;
-                            if (data.labels.length && data.datasets.length) {
-                                return data.labels.map((label, i) => {
-                                    const value = data.datasets[0].data[i];
-                                    const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+        const ctx = document.getElementById('assessment-pie-chart');
+        if (!ctx) return;
+        
+        // Calculate data with detailed breakdown
+        const stats = this.calculateDetailedStats();
+        
+        // Destroy existing chart
+        if (window.pieChart) {
+            window.pieChart.destroy();
+        }
+        
+        window.pieChart = new Chart(ctx, {
+            type: 'doughnut', // Changed to doughnut for modern look
+            data: {
+                labels: ['ปกติ', 'เสี่ยง', 'มีปัญหา', 'ยังไม่ประเมิน'],
+                datasets: [{
+                    data: [stats.normal, stats.risk, stats.problem, stats.notAssessed],
+                    backgroundColor: [
+                        '#10B981', // Green
+                        '#F59E0B', // Yellow  
+                        '#EF4444', // Red
+                        '#6B7280'  // Gray
+                    ],
+                    borderWidth: 3,
+                    borderColor: '#ffffff',
+                    hoverBorderWidth: 5,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 1.5,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            font: { size: 12, weight: '500' },
+                            generateLabels: (chart) => {
+                                const original = Chart.defaults.plugins.legend.labels.generateLabels;
+                                const labels = original.call(this, chart);
+                                
+                                labels.forEach((label, index) => {
+                                    const value = chart.data.datasets[0].data[index];
+                                    const total = chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
                                     const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                                    
-                                    return {
-                                        text: `${label}: ${value} คน (${percentage}%)`,
-                                        fillStyle: data.datasets[0].backgroundColor[i],
-                                        strokeStyle: data.datasets[0].borderColor,
-                                        lineWidth: data.datasets[0].borderWidth,
-                                        pointStyle: 'circle',
-                                        hidden: false,
-                                        index: i
-                                    };
+                                    label.text = `${label.text}: ${value} คน (${percentage}%)`;
                                 });
+                                
+                                return labels;
                             }
-                            return [];
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ffffff',
+                        borderColor: '#ffffff',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: (context) => {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0;
+                                return `${context.label}: ${context.raw} คน (${percentage}%)`;
+                            }
                         }
                     }
                 },
-                tooltip: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    titleColor: '#ffffff',
-                    bodyColor: '#ffffff',
-                    borderColor: '#ffffff',
-                    borderWidth: 1,
-                    cornerRadius: 8,
-                    callbacks: {
-                        label: (context) => {
-                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            const percentage = total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0;
-                            return `${context.label}: ${context.raw} คน (${percentage}%)`;
-                        }
-                    }
+                animation: {
+                    animateRotate: true,
+                    animateScale: true,
+                    duration: 1500,
+                    easing: 'easeOutQuart'
+                },
+                layout: {
+                    padding: 20
                 }
-            },
-            animation: {
-                animateRotate: true,
-                animateScale: true,
-                duration: 1500,
-                easing: 'easeOutQuart'
-            },
-            layout: {
-                padding: 20
             }
-        }
-    });
-    
-    console.log('Pie chart created successfully');
-},
+        });
+    },
     
     /**
      * Enhanced bar chart with gradient and animations
@@ -3805,30 +3776,24 @@ const chartsLoader = {
     },
     
     // Helper methods for chart data
-        calculateDetailedStats() {
-            const total = filteredStudents.length;
-            let normal = 0, risk = 0, problem = 0, notAssessed = 0;
-            
-            console.log('Calculating stats for', total, 'students');
-            
-            filteredStudents.forEach(student => {
-                const assessment = getLatestAssessment(student.id);
-                if (!assessment || !assessment.scores) {
-                    notAssessed++;
-                    console.log(`Student ${student.name}: not assessed`);
-                } else {
-                    const status = getAssessmentStatus(assessment);
-                    console.log(`Student ${student.name}: status = ${status}, score = ${assessment.scores.totalDifficulties}`);
-                    
-                    if (status === 'normal') normal++;
-                    else if (status === 'risk') risk++;
-                    else problem++; // includes 'problem' and 'severe'
-                }
-            });
-            
-            console.log('Final stats:', { normal, risk, problem, notAssessed, total });
-            return { normal, risk, problem, notAssessed, total };
-        },
+    calculateDetailedStats() {
+        const total = filteredStudents.length;
+        let normal = 0, risk = 0, problem = 0, notAssessed = 0;
+        
+        filteredStudents.forEach(student => {
+            const assessment = getLatestAssessment(student.id);
+            if (!assessment) {
+                notAssessed++;
+            } else {
+                const status = getAssessmentStatus(assessment);
+                if (status === 'normal') normal++;
+                else if (status === 'risk') risk++;
+                else problem++; // includes 'problem' and 'severe'
+            }
+        });
+        
+        return { normal, risk, problem, notAssessed, total };
+    },
     
     calculateAspectAverages() {
         const aspects = ['emotional', 'conduct', 'hyperactivity', 'peerProblems', 'prosocial'];
@@ -3977,97 +3942,85 @@ function updatePriorityStudents() {
  * Advanced export with multiple formats and options
  */
 const exportManager = {
-async exportData(format = 'csv', options = {}) {
-    try {
-        showLoading(true, "กำลังเตรียมข้อมูลสำหรับส่งออก...", 'data');
-        
-        const data = this.prepareExportData(options);
-        
-        switch (format) {
-            case 'csv':
-                await this.exportToCSV(data, options);
-                break;
-            case 'excel':
-                await this.exportToExcel(data, options);
-                break;
-            case 'pdf':
-                await this.exportToPDF(data, options);
-                break;
-            default:
-                throw new Error('Unsupported export format');
+    async exportData(format = 'csv', options = {}) {
+        try {
+            showLoading(true, "กำลังเตรียมข้อมูลสำหรับส่งออก...", 'data');
+            
+            const data = this.prepareExportData(options);
+            
+            switch (format) {
+                case 'csv':
+                    await this.exportToCSV(data, options);
+                    break;
+                case 'excel':
+                    await this.exportToExcel(data, options);
+                    break;
+                case 'pdf':
+                    await this.exportToPDF(data, options);
+                    break;
+                default:
+                    throw new Error('Unsupported export format');
+            }
+            
+            showLoading(false);
+            showSuccess('ส่งออกข้อมูลเรียบร้อยแล้ว');
+            
+        } catch (error) {
+            showLoading(false);
+            handleError(error, 'exportData');
         }
-        
-        showLoading(false);
-        showSuccess(`ส่งออกข้อมูลเป็น ${format.toUpperCase()} เรียบร้อยแล้ว`);
-        
-    } catch (error) {
-        showLoading(false);
-        handleError(error, 'exportData');
-    }
-},
+    },
     
     prepareExportData(options = {}) {
-    const includeDetails = options.includeDetails !== false;
-    const includeCharts = options.includeCharts === true;
-    const selectedStudents = options.selectedStudents || filteredStudents;
-    
-    console.log('Preparing export data for', selectedStudents.length, 'students');
-    
-    const exportData = selectedStudents.map((student, index) => {
-        const assessment = getLatestAssessment(student.id);
+        const includeDetails = options.includeDetails !== false;
+        const includeCharts = options.includeCharts === true;
+        const selectedStudents = options.selectedStudents || filteredStudents;
         
-        const baseData = {
-            'ลำดับ': index + 1,
-            'รหัสนักเรียน': student.id || '-',
-            'ชื่อ-นามสกุล': student.name || '-',
-            'ชั้นเรียน': student.class || '-',
-            'สถานะการประเมิน': assessment ? 'ประเมินแล้ว' : 'ยังไม่ประเมิน'
-        };
-        
-        if (assessment) {
-            // ดึงวันที่จากหลายแหล่งที่เป็นไปได้
-            let assessmentDate = assessment.timestamp || 
-                                assessment.date || 
-                                assessment.assessmentDate || 
-                                assessment.createdAt ||
-                                assessment.evaluationDate;
+        const exportData = selectedStudents.map((student, index) => {
+            const assessment = getLatestAssessment(student.id);
             
-            console.log('Assessment date for', student.name, ':', assessmentDate);
+            const baseData = {
+                'ลำดับ': index + 1,
+                'รหัสนักเรียน': student.id || '-',
+                'ชื่อ-นามสกุล': student.name || '-',
+                'ชั้นเรียน': student.class || '-',
+                'สถานะการประเมิน': assessment ? 'ประเมินแล้ว' : 'ยังไม่ประเมิน'
+            };
             
-            baseData['วันที่ประเมิน'] = this.formatDateForExport(assessmentDate);
-            baseData['ผู้ประเมิน'] = assessment.evaluatorName || assessment.evaluator || 'ไม่ระบุ';
-            baseData['ประเภทผู้ประเมิน'] = this.getEvaluatorTypeText(assessment.evaluatorType || 'teacher');
-            
-            if (includeDetails && assessment.scores) {
-                baseData['คะแนนด้านอารมณ์'] = assessment.scores.emotional || 0;
-                baseData['คะแนนด้านความประพฤติ'] = assessment.scores.conduct || 0;
-                baseData['คะแนนด้านสมาธิ'] = assessment.scores.hyperactivity || 0;
-                baseData['คะแนนด้านเพื่อน'] = assessment.scores.peerProblems || 0;
-                baseData['คะแนนด้านสังคม'] = assessment.scores.prosocial || 0;
-                baseData['คะแนนรวมปัญหา'] = assessment.scores.totalDifficulties || 0;
-                baseData['ผลการแปลผลรวม'] = (assessment.interpretations && assessment.interpretations.total) || '-';
-                baseData['ข้อแนะนำ'] = this.getRecommendation(assessment);
+            if (assessment) {
+                baseData['วันที่ประเมิน'] = this.formatDateForExport(assessment.timestamp);
+                baseData['ผู้ประเมิน'] = assessment.evaluatorName || 'ไม่ระบุ';
+                baseData['ประเภทผู้ประเมิน'] = this.getEvaluatorTypeText(assessment.evaluatorType);
+                
+                if (includeDetails) {
+                    baseData['คะแนนด้านอารมณ์'] = assessment.scores.emotional || 0;
+                    baseData['คะแนนด้านความประพฤติ'] = assessment.scores.conduct || 0;
+                    baseData['คะแนนด้านสมาธิ'] = assessment.scores.hyperactivity || 0;
+                    baseData['คะแนนด้านเพื่อน'] = assessment.scores.peerProblems || 0;
+                    baseData['คะแนนด้านสังคม'] = assessment.scores.prosocial || 0;
+                    baseData['คะแนนรวมปัญหา'] = assessment.scores.totalDifficulties || 0;
+                    baseData['ผลการแปลผลรวม'] = assessment.interpretations.total || '-';
+                    baseData['ข้อแนะนำ'] = this.getRecommendation(assessment);
+                }
+            } else {
+                baseData['วันที่ประเมิน'] = '-';
+                baseData['ผู้ประเมิน'] = '-';
+                baseData['ประเภทผู้ประเมิน'] = '-';
+                
+                if (includeDetails) {
+                    ['คะแนนด้านอารมณ์', 'คะแนนด้านความประพฤติ', 'คะแนนด้านสมาธิ', 
+                     'คะแนนด้านเพื่อน', 'คะแนนด้านสังคม', 'คะแนนรวมปัญหา', 
+                     'ผลการแปลผลรวม', 'ข้อแนะนำ'].forEach(field => {
+                        baseData[field] = '-';
+                    });
+                }
             }
-        } else {
-            baseData['วันที่ประเมิน'] = '-';
-            baseData['ผู้ประเมิน'] = '-';
-            baseData['ประเภทผู้ประเมิน'] = '-';
             
-            if (includeDetails) {
-                ['คะแนนด้านอารมณ์', 'คะแนนด้านความประพฤติ', 'คะแนนด้านสมาธิ', 
-                 'คะแนนด้านเพื่อน', 'คะแนนด้านสังคม', 'คะแนนรวมปัญหา', 
-                 'ผลการแปลผลรวม', 'ข้อแนะนำ'].forEach(field => {
-                    baseData[field] = '-';
-                });
-            }
-        }
+            return baseData;
+        });
         
-        return baseData;
-    });
-    
-    console.log('Export data prepared:', exportData.length, 'records');
-    return exportData;
-},
+        return exportData;
+    },
     
     async exportToCSV(data, options = {}) {
         const csvContent = '\ufeff' + this.convertToCSV(data);
@@ -4124,99 +4077,19 @@ async exportData(format = 'csv', options = {}) {
         setTimeout(() => URL.revokeObjectURL(url), 1000);
     },
     
-formatDateForExport(dateString) {
-    if (!dateString || dateString === '-' || dateString === 'undefined') return '-';
-    
-    console.log('Formatting date:', dateString, 'Type:', typeof dateString);
-    
-    try {
-        let date;
-        
-        // ตรวจสอบประเภทของข้อมูลวันที่
-        if (dateString instanceof Date) {
-            date = dateString;
-        } else if (typeof dateString === 'string') {
-            // ลบคำภาษาไทยที่อาจมีปะปนออก
-            let cleanDateString = dateString.trim();
-            
-            // ตรวจสอบรูปแบบ ISO string
-            if (cleanDateString.includes('T') && cleanDateString.includes('Z')) {
-                date = new Date(cleanDateString);
-            }
-            // ตรวจสอบรูปแบบ timestamp
-            else if (/^\d{13}$/.test(cleanDateString)) {
-                date = new Date(parseInt(cleanDateString));
-            }
-            // ตรวจสอบรูปแบบ timestamp วินาที
-            else if (/^\d{10}$/.test(cleanDateString)) {
-                date = new Date(parseInt(cleanDateString) * 1000);
-            }
-            // ตรวจสอบรูปแบบวันที่ต่างๆ
-            else {
-                // ลองแปลงตรงๆ ก่อน
-                date = new Date(cleanDateString);
-                
-                // ถ้าไม่ได้ผล ลองรูปแบบอื่น
-                if (isNaN(date.getTime())) {
-                    // รูปแบบ DD/MM/YYYY
-                    const ddmmyyyy = cleanDateString.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-                    if (ddmmyyyy) {
-                        date = new Date(ddmmyyyy[3], ddmmyyyy[2] - 1, ddmmyyyy[1]);
-                    }
-                    // รูปแบบ DD-MM-YYYY
-                    else {
-                        const ddmmyyyy2 = cleanDateString.match(/(\d{1,2})-(\d{1,2})-(\d{4})/);
-                        if (ddmmyyyy2) {
-                            date = new Date(ddmmyyyy2[3], ddmmyyyy2[2] - 1, ddmmyyyy2[1]);
-                        }
-                        // รูปแบบ YYYY-MM-DD
-                        else {
-                            const yyyymmdd = cleanDateString.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
-                            if (yyyymmdd) {
-                                date = new Date(yyyymmdd[1], yyyymmdd[2] - 1, yyyymmdd[3]);
-                            }
-                        }
-                    }
-                }
-            }
-        } else if (typeof dateString === 'number') {
-            // Timestamp
-            if (dateString > 1000000000000) {
-                // Milliseconds
-                date = new Date(dateString);
-            } else {
-                // Seconds
-                date = new Date(dateString * 1000);
-            }
+    formatDateForExport(dateString) {
+        if (!dateString) return '-';
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('th-TH', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        } catch {
+            return '-';
         }
-        
-        // ตรวจสอบว่าวันที่ถูกต้องหรือไม่
-        if (!date || isNaN(date.getTime())) {
-            console.warn('Invalid date after parsing:', dateString);
-            return 'วันที่ไม่ถูกต้อง';
-        }
-        
-        // ตรวจสอบว่าวันที่เป็นไปได้หรือไม่ (ไม่เก่าหรือใหม่เกินไป)
-        const year = date.getFullYear();
-        if (year < 1900 || year > 2100) {
-            console.warn('Date year out of range:', year);
-            return 'วันที่ไม่ถูกต้อง';
-        }
-        
-        const formatted = date.toLocaleDateString('th-TH', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-        
-        console.log('Formatted date result:', formatted);
-        return formatted;
-        
-    } catch (error) {
-        console.error('Error formatting date:', error, 'Input:', dateString);
-        return 'ข้อผิดพลาดในการแปลงวันที่';
-    }
-},
+    },
     
     getEvaluatorTypeText(type) {
         const types = {
@@ -4241,217 +4114,6 @@ formatDateForExport(dateString) {
         return recommendations[status] || 'ควรติดตามและประเมินซ้ำ';
     }
 };
-
-
-async exportToPDF(data, options = {}) {
-    try {
-        showLoading(true, "กำลังสร้างไฟล์ PDF...", 'saving');
-        
-        // Import jsPDF และ autoTable
-        const { jsPDF } = window.jspdf;
-        if (!jsPDF) {
-            throw new Error('jsPDF library not loaded');
-        }
-        
-        const doc = new jsPDF({
-            orientation: 'landscape', // แนวนอนเพื่อให้พอกับตาราง
-            unit: 'mm',
-            format: 'a4'
-        });
-        
-        // เพิ่ม font Sarabun สำหรับภาษาไทย
-        await this.addThaiFont(doc);
-        
-        // ตั้งค่า font เป็น Sarabun
-        doc.setFont('Sarabun');
-        
-        // สร้างเนื้อหา PDF
-        await this.createPDFContent(doc, data, options);
-        
-        // บันทึกไฟล์
-        const filename = this.generateFilename('pdf', options);
-        doc.save(filename);
-        
-        showLoading(false);
-        
-    } catch (error) {
-        showLoading(false);
-        console.error('Error creating PDF:', error);
-        showError('ไม่สามารถสร้างไฟล์ PDF ได้: ' + error.message);
-    }
-},
-
-// 6. เพิ่มฟังก์ชัน addThaiFont (ฟังก์ชันใหม่)
-async addThaiFont(doc) {
-    try {
-        // ใช้ font Sarabun จาก Google Fonts หรือ built-in
-        // ในการใช้งานจริง ควรโหลด font file และ encode เป็น base64
-        
-        // สำหรับตอนนี้ใช้ font ที่ support ภาษาไทยแทน
-        doc.addFont('https://fonts.gstatic.com/s/sarabun/v13/DtVjJx26TKEqsc-dECpTZgo-9mZGQg.ttf', 'Sarabun', 'normal');
-        
-        // หรือใช้ built-in font ที่ support Unicode
-        // doc.setFont('helvetica'); // fallback
-        
-    } catch (error) {
-        console.warn('Could not load Thai font, using fallback:', error);
-        // ใช้ font ธรรมดาแทน
-        doc.setFont('helvetica');
-    }
-},
-
-// 7. เพิ่มฟังก์ชัน createPDFContent (ฟังก์ชันใหม่)
-async createPDFContent(doc, data, options = {}) {
-    const pageWidth = doc.internal.pageSize.width;
-    const pageHeight = doc.internal.pageSize.height;
-    let yPosition = 20;
-    
-    // หัวเรื่อง
-    doc.setFontSize(18);
-    doc.setFont('Sarabun', 'bold');
-    const title = options.title || 'รายงานการประเมิน SDQ';
-    const titleWidth = doc.getTextWidth(title);
-    doc.text(title, (pageWidth - titleWidth) / 2, yPosition);
-    
-    yPosition += 10;
-    
-    // ข้อมูลเพิ่มเติม
-    doc.setFontSize(12);
-    doc.setFont('Sarabun', 'normal');
-    
-    const className = currentClass || 'ทุกชั้นเรียน';
-    const reportDate = new Date().toLocaleDateString('th-TH', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
-    const teacherName = currentUser.fullName || 'ครู';
-    const schoolName = currentUser.school || 'โรงเรียน';
-    
-    const infoLines = [
-        `ชั้นเรียน: ${className}`,
-        `ครูผู้รับผิดชอบ: ${teacherName}`,
-        `โรงเรียน: ${schoolName}`,
-        `วันที่ออกรายงาน: ${reportDate}`
-    ];
-    
-    infoLines.forEach(line => {
-        doc.text(line, 20, yPosition);
-        yPosition += 7;
-    });
-    
-    yPosition += 10;
-    
-    // สถิติสรุป
-    if (options.includeSummary !== false) {
-        const stats = chartsLoader.calculateDetailedStats();
-        
-        doc.setFontSize(14);
-        doc.setFont('Sarabun', 'bold');
-        doc.text('สรุปสถิติการประเมิน', 20, yPosition);
-        yPosition += 10;
-        
-        doc.setFontSize(11);
-        doc.setFont('Sarabun', 'normal');
-        
-        const summaryData = [
-            ['สถานะ', 'จำนวน (คน)', 'เปอร์เซ็นต์'],
-            ['นักเรียนทั้งหมด', stats.total.toString(), '100%'],
-            ['ประเมินแล้ว', (stats.normal + stats.risk + stats.problem).toString(), 
-             `${stats.total > 0 ? (((stats.normal + stats.risk + stats.problem) / stats.total) * 100).toFixed(1) : 0}%`],
-            ['ปกติ', stats.normal.toString(), 
-             `${stats.total > 0 ? ((stats.normal / stats.total) * 100).toFixed(1) : 0}%`],
-            ['เสี่ยง', stats.risk.toString(), 
-             `${stats.total > 0 ? ((stats.risk / stats.total) * 100).toFixed(1) : 0}%`],
-            ['มีปัญหา', stats.problem.toString(), 
-             `${stats.total > 0 ? ((stats.problem / stats.total) * 100).toFixed(1) : 0}%`],
-            ['ยังไม่ประเมิน', stats.notAssessed.toString(), 
-             `${stats.total > 0 ? ((stats.notAssessed / stats.total) * 100).toFixed(1) : 0}%`]
-        ];
-        
-        // ใช้ autoTable สำหรับตารางสรุป
-        doc.autoTable({
-            head: [summaryData[0]],
-            body: summaryData.slice(1),
-            startY: yPosition,
-            styles: {
-                font: 'Sarabun',
-                fontSize: 10,
-                cellPadding: 3
-            },
-            headStyles: {
-                fillColor: [102, 126, 234],
-                textColor: 255,
-                fontStyle: 'bold'
-            },
-            columnStyles: {
-                0: { cellWidth: 60 },
-                1: { cellWidth: 40, halign: 'center' },
-                2: { cellWidth: 40, halign: 'center' }
-            },
-            margin: { left: 20, right: 20 }
-        });
-        
-        yPosition = doc.lastAutoTable.finalY + 15;
-    }
-    
-    // ตารางรายละเอียด
-    if (data && data.length > 0) {
-        doc.setFontSize(14);
-        doc.setFont('Sarabun', 'bold');
-        doc.text('รายละเอียดการประเมิน', 20, yPosition);
-        yPosition += 10;
-        
-        // เตรียมข้อมูลตาราง
-        const headers = Object.keys(data[0]);
-        const tableData = data.map(row => headers.map(header => {
-            const value = row[header];
-            return value !== null && value !== undefined ? value.toString() : '-';
-        }));
-        
-        // สร้างตาราง
-        doc.autoTable({
-            head: [headers],
-            body: tableData,
-            startY: yPosition,
-            styles: {
-                font: 'Sarabun',
-                fontSize: 8,
-                cellPadding: 2,
-                overflow: 'linebreak',
-                cellWidth: 'wrap'
-            },
-            headStyles: {
-                fillColor: [102, 126, 234],
-                textColor: 255,
-                fontStyle: 'bold',
-                fontSize: 9
-            },
-            columnStyles: {
-                0: { cellWidth: 15 }, // ลำดับ
-                1: { cellWidth: 25 }, // รหัสนักเรียน
-                2: { cellWidth: 45 }, // ชื่อ-นามสกุล
-                3: { cellWidth: 20 }, // ชั้น
-                4: { cellWidth: 30 }, // สถานะ
-                5: { cellWidth: 25 }, // วันที่ประเมิน
-                6: { cellWidth: 35 }  // ผู้ประเมิน
-            },
-            margin: { left: 10, right: 10 },
-            pageBreak: 'auto',
-            showHead: 'everyPage'
-        });
-    }
-    
-    // Footer
-    const totalPages = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= totalPages; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setFont('Sarabun', 'normal');
-        doc.text(`หน้า ${i} จาก ${totalPages}`, pageWidth - 30, pageHeight - 10);
-        doc.text('ระบบประเมิน SDQ', 20, pageHeight - 10);
-    }
-},
 
 // ============================
 // ENHANCED INITIALIZATION
@@ -4543,13 +4205,7 @@ function setupEventListeners() {
     document.getElementById('quick-assess-btn').addEventListener('click', () => switchTab('assessment'));
     document.getElementById('view-reports-btn').addEventListener('click', () => switchTab('reports'));
     document.getElementById('export-data-btn').addEventListener('click', () => exportManager.exportData('csv'));
-    document.getElementById('export-pdf-btn')?.addEventListener('click', () => {
-    exportManager.exportData('pdf', {
-        includeDetails: true,
-        includeSummary: true,
-        title: `รายงานการประเมิน SDQ - ${currentClass || 'ทุกชั้นเรียน'}`
-    });
-});
+    
     // Assessment form
     setupAssessmentEventListeners();
     
@@ -4895,11 +4551,6 @@ function showEnhancedAssessmentResults(results) {
 function createEnhancedResultsHTML(results) {
     const status = getAssessmentStatus({ scores: results.scores });
     const statusInfo = getStatusInfo(status);
-        const assessmentDate = exportManager.formatDateForExport(
-        results.studentInfo.timestamp || 
-        results.timestamp || 
-        new Date().toISOString()
-    );
     
     return `
         <div class="space-y-6">
@@ -4912,7 +4563,7 @@ function createEnhancedResultsHTML(results) {
                             <p><strong>ชื่อ:</strong> ${results.studentInfo.name}</p>
                             <p><strong>ชั้น:</strong> ${results.studentInfo.class}</p>
                             <p><strong>ประเมินโดย:</strong> ${results.studentInfo.evaluatorName}</p>
-                            <p><strong>วันที่ประเมิน:</strong> ${assessmentDate}</p>
+                            <p><strong>วันที่ประเมิน:</strong> ${results.studentInfo.timestamp}</p>
                         </div>
                     </div>
                     <div class="text-center">
